@@ -1,0 +1,19 @@
+.hero {
+  padding: var(--space-64) 0;
+  text-align: center;
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.title {
+  font-size: var(--text-3xl);
+  color: var(--color-text-main);
+  margin-bottom: var(--space-16);
+}
+
+.subtitle {
+  font-size: var(--text-lg);
+  color: var(--color-text-muted);
+  max-width: 600px;
+  margin: 0 auto var(--space-32);
+}

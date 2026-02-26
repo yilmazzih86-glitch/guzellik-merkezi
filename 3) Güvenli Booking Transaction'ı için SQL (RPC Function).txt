@@ -1,0 +1,56 @@
+-- Çakışma kontrolü ve randevu oluşturma işlemini tek bir transaction'da yapan fonksiyon
+CREATE OR REPLACE FUNCTION book_appointment(
+  p_customer_name TEXT, 
+  p_customer_phone TEXT, 
+  p_customer_email TEXT,
+  p_service_id UUID, 
+  p_staff_id UUID, 
+  p_start_at TIMESTAMPTZ, 
+  p_end_at TIMESTAMPTZ
+) RETURNS jsonb AS $$
+DECLARE
+  v_customer_id UUID;
+  v_appointment_id UUID;
+  v_overlap BOOLEAN;
+BEGIN
+  -- 1. Çakışma (Overlap) Kontrolü: tstzrange ile belirtilen aralıkta confirmed randevu var mı?
+  SELECT EXISTS (
+    SELECT 1 FROM appointments
+    WHERE status = 'confirmed'
+    -- Eğer personel bazlı çakışma isteniyorsa: AND (staff_id = p_staff_id OR staff_id IS NULL)
+    AND tstzrange(start_at, end_at) && tstzrange(p_start_at, p_end_at)
+  ) INTO v_overlap;
+
+  IF v_overlap THEN
+    RAISE EXCEPTION 'OVERLAP_ERROR' USING ERRCODE = 'P0001';
+  END IF;
+
+  -- 2. Müşteri bul veya oluştur (Email veya Telefona göre)
+  SELECT id INTO v_customer_id FROM customers 
+  WHERE email = p_customer_email OR phone = p_customer_phone LIMIT 1;
+  
+  IF v_customer_id IS NULL THEN
+    INSERT INTO customers (full_name, phone, email) 
+    VALUES (p_customer_name, p_customer_phone, p_customer_email) 
+    RETURNING id INTO v_customer_id;
+  END IF;
+
+  -- 3. Randevuyu oluştur
+  INSERT INTO appointments (customer_id, service_id, staff_id, start_at, end_at, status, source)
+  VALUES (v_customer_id, p_service_id, p_staff_id, p_start_at, p_end_at, 'confirmed', 'web')
+  RETURNING id INTO v_appointment_id;
+
+  -- 4. Hatırlatıcıları (Reminders) oluştur (Başlangıçtan 24 saat ve 2 saat önce)
+  INSERT INTO reminders (appointment_id, type, scheduled_for)
+  VALUES 
+    (v_appointment_id, 'email', p_start_at - INTERVAL '24 hours'),
+    (v_appointment_id, 'email', p_start_at - INTERVAL '2 hours');
+
+  -- 5. Audit Log (Denetim Günlüğü) kaydı
+  INSERT INTO audit_logs (action, payload)
+  VALUES ('appointment_created', jsonb_build_object('appointment_id', v_appointment_id, 'customer_id', v_customer_id));
+
+  -- Başarılı dönüş
+  RETURN jsonb_build_object('appointment_id', v_appointment_id, 'customer_id', v_customer_id);
+END;
+$$ LANGUAGE plpgsql;

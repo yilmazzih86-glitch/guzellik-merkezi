@@ -1,0 +1,62 @@
+.adminContainer {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--color-background);
+}
+
+.sidebar {
+  width: 250px;
+  background-color: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-24) var(--space-16);
+}
+
+.logo {
+  font-size: var(--text-xl);
+  font-weight: bold;
+  color: var(--color-primary);
+  margin-bottom: var(--space-48);
+  text-align: center;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  flex-grow: 1;
+}
+
+.menuItem {
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.menuItem:hover {
+  background-color: var(--color-background);
+  color: var(--color-primary);
+}
+
+.logoutBtn {
+  margin-top: auto;
+  padding: var(--space-12) var(--space-16);
+  color: var(--color-error);
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: background-color 0.2s;
+}
+
+.logoutBtn:hover {
+  background-color: #FDEDEC;
+}
+
+.content {
+  flex: 1;
+  padding: var(--space-32);
+  overflow-y: auto;
+}

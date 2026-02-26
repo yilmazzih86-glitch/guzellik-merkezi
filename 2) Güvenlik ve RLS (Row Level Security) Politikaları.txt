@@ -1,0 +1,20 @@
+-- Tüm tablolarda RLS'i aktif et
+ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE services ENABLE ROW LEVEL SECURITY;
+ALTER TABLE staff ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reminders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+
+-- Sadece "authenticated" (Admin login olmuş) kullanıcılar için FULL erişim yetkileri
+CREATE POLICY "Admin tam erişim - settings" ON settings FOR ALL TO authenticated USING (true);
+CREATE POLICY "Admin tam erişim - services" ON services FOR ALL TO authenticated USING (true);
+CREATE POLICY "Admin tam erişim - staff" ON staff FOR ALL TO authenticated USING (true);
+CREATE POLICY "Admin tam erişim - customers" ON customers FOR ALL TO authenticated USING (true);
+CREATE POLICY "Admin tam erişim - appointments" ON appointments FOR ALL TO authenticated USING (true);
+CREATE POLICY "Admin tam erişim - reminders" ON reminders FOR ALL TO authenticated USING (true);
+CREATE POLICY "Admin tam erişim - audit_logs" ON audit_logs FOR ALL TO authenticated USING (true);
+
+-- Not: Anonim (public) kullanıcılar için hiçbir policy yazmıyoruz. 
+-- Public frontend sadece bizim Next.js /api route'larımıza istek atacak.

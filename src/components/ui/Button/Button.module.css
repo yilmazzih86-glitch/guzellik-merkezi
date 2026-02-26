@@ -1,0 +1,38 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  font-size: var(--text-base);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Boyutlar */
+.md { padding: var(--space-8) var(--space-16); }
+.lg { padding: var(--space-12) var(--space-24); font-size: var(--text-lg); }
+
+/* Varyasyonlar */
+.primary {
+  background-color: var(--color-primary);
+  color: #fff;
+}
+.primary:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+}
+
+.secondary {
+  background-color: var(--color-surface);
+  color: var(--color-text-main);
+  border: 1px solid var(--color-border);
+}
+.secondary:hover:not(:disabled) {
+  background-color: var(--color-background);
+}
