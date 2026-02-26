@@ -1,14 +1,23 @@
 /* src/styles/tokens.css */
 :root {
-  /* Renk Paleti - Premium, Soft, Güzellik Merkezi Temasına Uygun */
-  --color-primary: #D4AF37; /* Soft Gold */
+  /* Güzellik Merkezi Renk Psikolojisi Paleti */
+  --color-background: #FAF9F6; /* Kırık Beyaz/Krem - Temizlik ve ferahlık hissi */
+  --color-surface: #FFFFFF;    /* Saf Beyaz - Kart ve form alanları için netlik */
+
+  --color-primary: #D4AF37;    /* Soft Gold - Lüks ve premium hizmet */
   --color-primary-hover: #C5A028;
-  --color-secondary: #2C3E50; /* Koyu Lacivert/Gri */
-  --color-background: #FAFAFA; /* Çok açık gri/beyaz */
-  --color-surface: #FFFFFF; /* Kart arka planları */
-  --color-text-main: #1A1A1A;
-  --color-text-muted: #666666;
-  --color-border: #EAEAEA;
+
+  --color-accent: #E8C1C5;     /* Pudra/Gül Kurusu - Estetik, bakım ve sıcaklık */
+  --color-accent-hover: #D8A5AB;
+
+  --color-secondary: #8BA888;  /* Adaçayı Yeşili - Doğallık ve dinginlik (Label veya tag'ler için harika) */
+
+  --color-text-main: #2C3E50;  /* Koyu Lacivert/Antrasit - Yumuşak okunabilirlik */
+  --color-text-muted: #7F8C8D; /* Yumuşak Gri - İkincil metinler */
+
+  --color-border: #EAE8E3;     /* Çok hafif sıcak gri sınır çizgileri */
+  --color-border-focus: #D4AF37;
+
   --color-error: #E74C3C;
   --color-success: #2ECC71;
 
@@ -28,9 +37,9 @@
   --radius-lg: 12px;
   --radius-full: 9999px;
   
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05); /* Gölgeleri daha uçuşan ve soft hale getirdik */
+  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.08);
 
   /* Tipografi */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
@@ -41,4 +50,8 @@
   --text-xl: 1.25rem;
   --text-2xl: 1.5rem;
   --text-3xl: 2rem;
+
+  /* Animasyon ve Geçişler */
+  --transition-fast: 0.2s ease-in-out;
+  --transition-smooth: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }

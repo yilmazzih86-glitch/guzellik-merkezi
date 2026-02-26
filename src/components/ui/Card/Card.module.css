@@ -1,12 +1,36 @@
 .card {
   background-color: var(--color-surface);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md); /* Temel derinliği artırdık */
   border: 1px solid var(--color-border);
   padding: var(--space-24);
-  transition: box-shadow 0.2s ease;
+  /* Tüm değişikliklerin yumuşakça akması için bezier eğrisi */
+  transition: all var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
 }
 
-.card:hover {
-  box-shadow: var(--shadow-md);
+/* Tıklanabilir (Interactive) Kartlar İçin Hover Durumu */
+.interactive {
+  cursor: pointer;
+}
+
+.interactive:hover {
+  transform: translateY(-4px); /* Zarifçe havaya kalkma hissi */
+  box-shadow: var(--shadow-lg), 0 8px 24px rgba(212, 175, 55, 0.08); /* Hafif altın gölge */
+  border-color: rgba(212, 175, 55, 0.4); /* Border rengi yumuşakça altına döner */
+}
+
+/* Kullanıcı bu kartı seçtiyse (Örn: Randevu sihirbazı hizmet seçimi) */
+.selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-md);
+  /* Arka plana çok çok hafif bir altın tonu veriyoruz (şeffaflık %2) */
+  background-color: rgba(212, 175, 55, 0.02); 
+}
+
+/* Seçili kartın hover durumunda zıplamasını engellemek için */
+.interactive.selected:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-lg);
 }

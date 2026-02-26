@@ -1,19 +1,274 @@
+/* src/app/(public)/Home.module.css */
+.main {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- 1. HERO (VİTRİN) BÖLÜMÜ --- */
 .hero {
-  padding: var(--space-64) 0;
-  text-align: center;
-  background-color: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  position: relative;
+  min-height: 90vh;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-32);
+  overflow: hidden;
+}
+
+/* Arka Plan Görseli ve Karanlık/Altın Katman */
+.heroImage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  transform: scale(1.05); /* Yüklenirken hafif bir derinlik için */
+}
+
+.heroOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Soldan sağa doğru açılan, yazıyı okunur kılan lüks bir gradient */
+  background: linear-gradient(90deg, rgba(20,20,20,0.9) 0%, rgba(20,20,20,0.6) 50%, rgba(20,20,20,0.1) 100%);
+  z-index: 1;
+}
+
+.heroContent {
+  position: relative;
+  z-index: 2;
+  max-width: 650px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+  margin-left: 5vw; /* Büyük ekranlarda soldan hafif boşluk */
+}
+
+.badge {
+  align-self: flex-start;
+  padding: var(--space-8) var(--space-16);
+  background-color: rgba(212, 175, 55, 0.2);
+  color: #F8E5A5; /* Açık altın */
+  border-left: 3px solid var(--color-primary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }
 
 .title {
-  font-size: var(--text-3xl);
-  color: var(--color-text-main);
-  margin-bottom: var(--space-16);
+  font-size: clamp(3rem, 5vw, 4.5rem);
+  color: #FFFFFF;
+  line-height: 1.1;
+  font-weight: 300;
+  margin: 0;
+}
+
+.title span {
+  color: var(--color-primary);
+  font-style: italic;
+  font-weight: 400;
 }
 
 .subtitle {
   font-size: var(--text-lg);
+  color: #E0E0E0;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.heroButtons {
+  display: flex;
+  gap: var(--space-16);
+  margin-top: var(--space-16);
+  flex-wrap: wrap;
+}
+
+/* --- 2. GÜVEN ÇUBUĞU (TRUST BAR) --- */
+.trustBar {
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-32) var(--space-24);
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+}
+
+.trustGrid {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: var(--space-32);
+  width: 100%;
+  max-width: 1200px;
+}
+
+.trustItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+}
+
+.trustIcon {
+  color: var(--color-primary);
+}
+
+.trustText h4 {
+  margin: 0;
+  color: var(--color-text-main);
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.trustText p {
+  margin: 0;
   color: var(--color-text-muted);
-  max-width: 600px;
-  margin: 0 auto var(--space-32);
+  font-size: var(--text-sm);
+}
+
+/* --- 3. ORTAK SECTION YAPISI --- */
+.section {
+  padding: var(--space-64) var(--space-24);
+  background-color: var(--color-background);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.sectionHeader {
+  text-align: center;
+  margin-bottom: var(--space-48);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.sectionTitle {
+  font-size: clamp(2rem, 3vw, 2.5rem);
+  font-weight: 300;
+  color: var(--color-text-main);
+  margin: 0;
+}
+
+/* --- 4. GÖRSELLİ HİZMET KARTLARI --- */
+.servicesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-32);
+}
+
+/* Card bileşenimizi dışarıdan modifiye ediyoruz */
+.serviceCard {
+  padding: 0 !important; /* Standart padding'i eziyoruz çünkü resim köşelere değmeli */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.serviceImageWrapper {
+  width: 100%;
+  height: 240px;
+  overflow: hidden;
+}
+
+.serviceImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s ease; /* Hover anında yavaşça yaklaşma efekti */
+}
+
+.serviceCard:hover .serviceImage {
+  transform: scale(1.08);
+}
+
+.serviceContent {
+  padding: var(--space-24);
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.serviceTitle {
+  font-size: var(--text-xl);
+  font-weight: 500;
+  color: var(--color-text-main);
+  margin: 0 0 var(--space-8) 0;
+}
+
+.serviceDesc {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  margin: 0 0 var(--space-16) 0;
+  flex-grow: 1;
+}
+
+.serviceFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-16);
+  font-weight: 500;
+}
+
+/* --- 5. TESTIMONIALS (MÜŞTERİ YORUMLARI) --- */
+.testimonials {
+  background-color: #FDFBF7; /* Çok uçuk krem/altın tonu */
+  padding: var(--space-64) var(--space-24);
+  border-top: 1px solid rgba(212, 175, 55, 0.2);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.reviewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-24);
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.reviewCard {
+  background-color: var(--color-surface);
+  padding: var(--space-32);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+.quoteIcon {
+  position: absolute;
+  top: var(--space-24);
+  right: var(--space-24);
+  color: rgba(212, 175, 55, 0.15);
+  width: 40px;
+  height: 40px;
+}
+
+.reviewStars {
+  color: var(--color-primary);
+  margin-bottom: var(--space-16);
+  letter-spacing: 2px;
+}
+
+.reviewText {
+  font-style: italic;
+  color: var(--color-text-main);
+  margin-bottom: var(--space-24);
+  line-height: 1.6;
+}
+
+.reviewAuthor {
+  font-weight: 600;
+  color: var(--color-text-main);
 }

@@ -1,32 +1,88 @@
 .wrapper {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-8); /* Etiket ve kutu arasına rahat nefes alacak boşluk */
   width: 100%;
+  position: relative;
 }
 
 .label {
   font-size: var(--text-sm);
   font-weight: 500;
-  color: var(--color-secondary);
+  color: var(--color-text-main);
+  transition: color var(--transition-fast);
 }
 
+/* Kutu Tasarımı */
 .input {
-  padding: var(--space-12);
+  padding: var(--space-12) var(--space-16);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font-size: var(--text-base);
   background-color: var(--color-surface);
-  transition: border-color 0.2s;
   color: var(--color-text-main);
+  font-family: var(--font-sans);
+  
+  /* Yumuşak gölgeler ve geçişler */
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-smooth);
 }
 
+.input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+/* Hover (Üzerine Gelme) Durumu */
+.input:hover:not(:disabled) {
+  border-color: #D5D3CE; /* Border renginden bir tık daha koyu */
+}
+
+/* Focus (Odaklanma) Durumu */
 .input:focus {
   outline: none;
   border-color: var(--color-primary);
+  /* Premium Soft Gold Parlama */
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15), var(--shadow-sm);
+}
+
+/* Disabled (Devre Dışı) Durumu */
+.input:disabled {
+  background-color: var(--color-background);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Hatalı Durum (Error State) */
+.inputError {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1), var(--shadow-sm);
+}
+
+.inputError:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.2), var(--shadow-sm);
+}
+
+/* Odaklanılan input'un etiketinin de renk değiştirmesi için özel sınıf */
+.wrapperFocus .label {
+  color: var(--color-primary);
+}
+
+/* Hatalı durumda etiketin rengi */
+.wrapperError .label {
+  color: var(--color-error);
 }
 
 .errorText {
   color: var(--color-error);
   font-size: var(--text-xs);
+  margin-top: calc(var(--space-4) * -1); /* Kutuyu çok itmemesi için */
+  animation: slideDown 0.2s ease-out forwards;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }

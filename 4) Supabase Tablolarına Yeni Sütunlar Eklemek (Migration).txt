@@ -1,0 +1,7 @@
+-- Hizmetler tablosuna açıklama ve resim url'si ekleme
+ALTER TABLE services ADD COLUMN description TEXT;
+ALTER TABLE services ADD COLUMN image_url TEXT;
+
+-- Personel (Uzman) tablosuna ünvan ve resim url'si ekleme
+ALTER TABLE staff ADD COLUMN title TEXT;
+ALTER TABLE staff ADD COLUMN image_url TEXT;

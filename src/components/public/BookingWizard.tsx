@@ -83,11 +83,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
       const data = await res.json();
 
       if (!res.ok) {
-        // Çakışma (Overlap) hatası 409 döner
         throw new Error(data.error || 'Randevu oluşturulamadı.');
       }
 
-      // Başarılı olursa success sayfasına yönlendir
       router.push('/success');
     } catch (err: any) {
       setError(err.message);
@@ -100,128 +98,134 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
     return d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
   };
 
+  // İleride webhook (n8n vs) veya ödeme adımları eklediğimizde bu yapı çok esnek olacak
   return (
     <Card className={layoutStyles.stack}>
       {/* İlerleme ve Başlık */}
       <div style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-16)' }}>
-        <p style={{ color: 'var(--color-text-muted)' }}>Adım {step} / 4</p>
-        <h2>
-          {step === 1 && 'Hizmet Seçin'}
-          {step === 2 && 'Personel Seçin'}
-          {step === 3 && 'Tarih ve Saat Seçin'}
+        <p style={{ color: 'var(--color-primary)', fontWeight: '500', marginBottom: 'var(--space-4)' }}>
+          Adım {step} / 4
+        </p>
+        <h2 style={{ color: 'var(--color-text-main)', margin: 0 }}>
+          {step === 1 && 'Size Nasıl Yardımcı Olabiliriz?'}
+          {step === 2 && 'Uzmanınızı Seçin'}
+          {step === 3 && 'Tarih ve Saat Belirleyin'}
           {step === 4 && 'İletişim Bilgileriniz'}
         </h2>
       </div>
 
       {error && (
-        <div style={{ backgroundColor: '#FDEDEC', color: 'var(--color-error)', padding: 'var(--space-12)', borderRadius: 'var(--radius-sm)' }}>
+        <div className="animate-fade-up" style={{ backgroundColor: '#FDEDEC', color: 'var(--color-error)', padding: 'var(--space-16)', borderRadius: 'var(--radius-md)', borderLeft: '4px solid var(--color-error)' }}>
           {error}
         </div>
       )}
 
       {/* ADIM 1: Hizmet Seçimi */}
       {step === 1 && (
-        <div className={layoutStyles.stack}>
+        <div className={`animate-fade-up ${layoutStyles.stack}`}>
           <div className={layoutStyles.grid}>
             {initialServices.map(srv => (
-              <div 
+              <Card 
                 key={srv.id} 
+                interactive 
+                selected={selectedService?.id === srv.id}
                 onClick={() => setSelectedService(srv)}
-                style={{
-                  padding: 'var(--space-16)',
-                  border: `2px solid ${selectedService?.id === srv.id ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                  borderRadius: 'var(--radius-md)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
+                style={{ padding: 'var(--space-16)', display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}
               >
-                <div style={{ fontWeight: 'bold', marginBottom: 'var(--space-4)' }}>{srv.name}</div>
-                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
-                  {srv.duration_min} dk | {srv.price_min ? `${srv.price_min} ₺` : ''}
+                <div style={{ fontWeight: '600', color: 'var(--color-text-main)', fontSize: 'var(--text-lg)' }}>
+                  {srv.name}
                 </div>
-              </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
+                  <span>⏱ {srv.duration_min} dk</span>
+                  {srv.price_min && <span style={{ color: 'var(--color-primary)', fontWeight: '500' }}>{srv.price_min} ₺</span>}
+                </div>
+              </Card>
             ))}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-16)' }}>
-            <Button disabled={!selectedService} onClick={() => setStep(2)}>İleri</Button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-24)' }}>
+            <Button size="lg" disabled={!selectedService} onClick={() => setStep(2)}>Devam Et</Button>
           </div>
         </div>
       )}
 
       {/* ADIM 2: Personel Seçimi */}
       {step === 2 && (
-        <div className={layoutStyles.stack}>
+        <div className={`animate-fade-up ${layoutStyles.stack}`}>
           <div className={layoutStyles.grid}>
             {/* "Fark Etmez" Seçeneği */}
-            <div 
+            <Card 
+              interactive
+              selected={selectedStaff === null}
               onClick={() => setSelectedStaff(null)}
-              style={{
-                padding: 'var(--space-16)',
-                border: `2px solid ${selectedStaff === null ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                borderRadius: 'var(--radius-md)',
-                cursor: 'pointer',
-                textAlign: 'center'
-              }}
+              style={{ padding: 'var(--space-16)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
             >
-              <strong>Fark Etmez</strong>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>Herhangi bir uzman</div>
-            </div>
+              <strong style={{ fontSize: 'var(--text-lg)', color: 'var(--color-text-main)' }}>Fark Etmez</strong>
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', marginTop: 'var(--space-4)' }}>Herhangi bir uzman</div>
+            </Card>
             
             {initialStaff.map(stf => (
-              <div 
+              <Card 
                 key={stf.id} 
+                interactive
+                selected={selectedStaff === stf.id}
                 onClick={() => setSelectedStaff(stf.id)}
-                style={{
-                  padding: 'var(--space-16)',
-                  border: `2px solid ${selectedStaff === stf.id ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                  borderRadius: 'var(--radius-md)',
-                  cursor: 'pointer',
-                  textAlign: 'center'
-                }}
+                style={{ padding: 'var(--space-16)', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
-                <strong>{stf.name}</strong>
-              </div>
+                <strong style={{ fontSize: 'var(--text-lg)', color: 'var(--color-text-main)' }}>{stf.name}</strong>
+              </Card>
             ))}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-16)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-24)' }}>
             <Button variant="secondary" onClick={() => setStep(1)}>Geri</Button>
-            <Button onClick={() => setStep(3)}>İleri</Button>
+            <Button size="lg" onClick={() => setStep(3)}>Devam Et</Button>
           </div>
         </div>
       )}
 
       {/* ADIM 3: Tarih ve Saat */}
       {step === 3 && (
-        <div className={layoutStyles.stack}>
+        <div className={`animate-fade-up ${layoutStyles.stack}`}>
           <Input 
             label="Tarih Seçin" 
             type="date" 
             value={selectedDate} 
-            min={new Date().toISOString().split('T')[0]} // Geçmiş tarih seçilemez
+            min={new Date().toISOString().split('T')[0]} 
             onChange={(e) => setSelectedDate(e.target.value)} 
           />
 
           <div style={{ marginTop: 'var(--space-16)' }}>
-            <h4 style={{ marginBottom: 'var(--space-8)' }}>Uygun Saatler</h4>
+            <h4 style={{ marginBottom: 'var(--space-12)', color: 'var(--color-text-main)' }}>Uygun Saatler</h4>
             {loadingSlots ? (
-              <p style={{ color: 'var(--color-text-muted)' }}>Saatler yükleniyor...</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-8)', color: 'var(--color-primary)' }}>
+                {/* Spinner */}
+                <svg className="spinner" style={{ animation: 'spin 1s linear infinite', width: '1.2em', height: '1.2em' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"></circle>
+                  <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Saatler kontrol ediliyor...</span>
+              </div>
             ) : slots.length === 0 ? (
-              <p style={{ color: 'var(--color-error)' }}>Bu tarihte uygun saat bulunamadı.</p>
+              <Card style={{ backgroundColor: '#FDEDEC', border: 'none', padding: 'var(--space-16)' }}>
+                <p style={{ color: 'var(--color-error)', margin: 0 }}>Bu tarihte uygun saat bulunamadı. Lütfen farklı bir tarih seçin.</p>
+              </Card>
             ) : (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-8)' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-12)' }}>
                 {slots.map((slot, idx) => (
                   <button
                     key={idx}
                     disabled={!slot.available}
                     onClick={() => setSelectedTimeSlot(slot.start)}
                     style={{
-                      padding: 'var(--space-8) var(--space-16)',
+                      padding: 'var(--space-12) var(--space-24)',
                       border: `1px solid ${selectedTimeSlot === slot.start ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                      backgroundColor: selectedTimeSlot === slot.start ? 'var(--color-primary)' : slot.available ? 'var(--color-surface)' : '#f0f0f0',
-                      color: selectedTimeSlot === slot.start ? 'white' : slot.available ? 'var(--color-text-main)' : '#a0a0a0',
+                      backgroundColor: selectedTimeSlot === slot.start ? 'var(--color-primary)' : slot.available ? 'var(--color-surface)' : 'var(--color-background)',
+                      color: selectedTimeSlot === slot.start ? '#fff' : slot.available ? 'var(--color-text-main)' : 'var(--color-text-muted)',
                       borderRadius: 'var(--radius-md)',
                       cursor: slot.available ? 'pointer' : 'not-allowed',
-                      fontWeight: selectedTimeSlot === slot.start ? 'bold' : 'normal'
+                      fontWeight: selectedTimeSlot === slot.start ? '600' : '400',
+                      transition: 'all var(--transition-fast)',
+                      opacity: slot.available ? 1 : 0.6,
+                      boxShadow: selectedTimeSlot === slot.start ? '0 4px 12px rgba(212, 175, 55, 0.3)' : 'none'
                     }}
                   >
                     {formatTime(slot.start)}
@@ -231,23 +235,28 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
             )}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-24)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-32)' }}>
             <Button variant="secondary" onClick={() => setStep(2)}>Geri</Button>
-            <Button disabled={!selectedTimeSlot} onClick={() => setStep(4)}>İleri</Button>
+            <Button size="lg" disabled={!selectedTimeSlot} onClick={() => setStep(4)}>Devam Et</Button>
           </div>
         </div>
       )}
 
       {/* ADIM 4: Müşteri Bilgileri ve Gönderim */}
       {step === 4 && (
-        <form onSubmit={handleSubmit} className={layoutStyles.stack}>
-          <div style={{ backgroundColor: 'var(--color-background)', padding: 'var(--space-16)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-8)' }}>
-            <strong>Özet:</strong> {selectedService?.name}, {selectedDate} Saat: {selectedTimeSlot ? formatTime(selectedTimeSlot) : ''}
-          </div>
+        <form onSubmit={handleSubmit} className={`animate-fade-up ${layoutStyles.stack}`}>
+          <Card style={{ backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+            <h4 style={{ margin: '0 0 var(--space-8) 0', color: 'var(--color-text-main)' }}>Randevu Özeti</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
+              <div><strong style={{ color: 'var(--color-text-main)' }}>Hizmet:</strong> {selectedService?.name}</div>
+              <div><strong style={{ color: 'var(--color-text-main)' }}>Tarih & Saat:</strong> {selectedDate.split('-').reverse().join('.')} - {selectedTimeSlot ? formatTime(selectedTimeSlot) : ''}</div>
+            </div>
+          </Card>
 
           <Input 
             label="Adınız Soyadınız" 
             required 
+            placeholder="Örn: Ayşe Yılmaz"
             value={customer.fullName} 
             onChange={(e) => setCustomer({...customer, fullName: e.target.value})} 
           />
@@ -255,6 +264,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
             label="Telefon Numaranız" 
             required 
             type="tel"
+            placeholder="05XX XXX XX XX"
             value={customer.phone} 
             onChange={(e) => setCustomer({...customer, phone: e.target.value})} 
           />
@@ -262,13 +272,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
             label="E-posta Adresiniz" 
             required 
             type="email"
+            placeholder="ornek@email.com"
             value={customer.email} 
             onChange={(e) => setCustomer({...customer, email: e.target.value})} 
           />
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-24)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-32)' }}>
             <Button type="button" variant="secondary" onClick={() => setStep(3)} disabled={submitting}>Geri</Button>
-            <Button type="submit" isLoading={submitting}>Randevuyu Onayla</Button>
+            <Button size="lg" type="submit" isLoading={submitting}>Randevuyu Onayla</Button>
           </div>
         </form>
       )}

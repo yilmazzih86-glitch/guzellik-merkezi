@@ -1,26 +1,57 @@
+/* src/app/admin/AdminLayout.module.css */
 .adminContainer {
   display: flex;
   min-height: 100vh;
-  background-color: var(--color-background);
+  background-color: var(--color-background); /* Çok hafif gri/krem arkaplan */
+  font-family: var(--font-sans);
 }
 
+/* --- SOL SİDEBAR (MENÜ) --- */
 .sidebar {
-  width: 250px;
-  background-color: var(--color-surface);
-  border-right: 1px solid var(--color-border);
+  width: 280px;
+  background-color: rgba(255, 255, 255, 0.85); /* Cam efekti için hafif saydam */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(212, 175, 55, 0.15); /* Zarif altın sınır */
   display: flex;
   flex-direction: column;
-  padding: var(--space-24) var(--space-16);
+  padding: var(--space-32) var(--space-24);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
+  z-index: 40;
 }
 
-.logo {
-  font-size: var(--text-xl);
-  font-weight: bold;
-  color: var(--color-primary);
+.logoWrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
   margin-bottom: var(--space-48);
-  text-align: center;
+  padding: 0 var(--space-8);
 }
 
+.logoIcon {
+  color: var(--color-primary);
+  width: 28px;
+  height: 28px;
+}
+
+.logoText {
+  font-size: var(--text-xl);
+  font-weight: 300;
+  letter-spacing: 2px;
+  color: var(--color-text-main);
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.logoText span {
+  font-weight: 500;
+  color: var(--color-primary);
+}
+
+/* --- MENÜ LİNKLERİ --- */
 .menu {
   display: flex;
   flex-direction: column;
@@ -29,34 +60,139 @@
 }
 
 .menuItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
   padding: var(--space-12) var(--space-16);
   border-radius: var(--radius-md);
   color: var(--color-text-muted);
   font-weight: 500;
-  transition: all 0.2s;
+  font-size: 14px;
+  text-decoration: none;
+  transition: all var(--transition-smooth);
+  border: 1px solid transparent;
+}
+
+.menuIcon {
+  width: 20px;
+  height: 20px;
+  opacity: 0.7;
+  transition: all var(--transition-fast);
 }
 
 .menuItem:hover {
-  background-color: var(--color-background);
+  background-color: rgba(212, 175, 55, 0.05); /* Soft Gold hover arkaplanı */
+  color: var(--color-text-main);
+}
+
+.menuItem:hover .menuIcon {
   color: var(--color-primary);
+  opacity: 1;
+}
+
+/* Aktif (Bulunulan) Sayfa Tasarımı */
+.activeMenuItem {
+  background-color: var(--color-primary);
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
+}
+
+.activeMenuItem .menuIcon {
+  color: #fff;
+  opacity: 1;
+}
+
+.activeMenuItem:hover {
+  background-color: var(--color-primary-hover);
+}
+
+/* --- ALT KISIM (ÇIKIŞ YAP) --- */
+.logoutWrapper {
+  margin-top: auto;
+  padding-top: var(--space-24);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .logoutBtn {
-  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  width: 100%;
   padding: var(--space-12) var(--space-16);
   color: var(--color-error);
+  background: none;
+  border: none;
   font-weight: 500;
+  font-size: 14px;
   cursor: pointer;
   border-radius: var(--radius-md);
-  transition: background-color 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .logoutBtn:hover {
   background-color: #FDEDEC;
 }
 
-.content {
+/* --- SAĞ İÇERİK ALANI (MAIN) --- */
+.mainWrapper {
   flex: 1;
-  padding: var(--space-32);
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* Flexbox taşmalarını önler */
+}
+
+/* İçerik üstündeki ince karşılama barı */
+.topbar {
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* Şimdilik sadece sağa yaslı karşılama mesajı */
+  padding: 0 var(--space-48);
+  background-color: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.userProfile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 16px;
+  box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3);
+}
+
+.userName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-main);
+  margin: 0;
+}
+
+.userRole {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.content {
+  padding: var(--space-48);
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
 }
