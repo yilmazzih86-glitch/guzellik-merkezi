@@ -1,0 +1,35 @@
+/* Lüks, buzlu cam efektli yükleme animasyonu */
+.skeleton {
+  background: rgba(255, 255, 255, 0.4); /* Hafif şeffaf beyaz */
+  border: 1px solid rgba(255, 255, 255, 0.6); /* İnce cam kenarlık */
+  backdrop-filter: blur(12px); /* Buzlu cam */
+  border-radius: var(--radius-md, 12px);
+  position: relative;
+  overflow: hidden;
+  /* Eğer tokens.css'de tanımlı değilse varsayılan gri, tanımlıysa token kullanıyoruz */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); 
+}
+
+/* Işıltı Animasyonu (Soldan sağa kayan ışık) */
+.skeleton::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(212, 175, 55, 0.15) 50%, /* Soft Gold (#D4AF37) hafif dokunuş */
+    transparent 100%
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
