@@ -112,10 +112,37 @@ export default function SettingsPage() {
   };
 
   const handleDeleteService = async (id: string) => {
-    if (!confirm('Bu hizmeti vitrinden kaldırmak istediğinize emin misiniz?')) return;
-    const { error } = await supabaseClient.from('services').delete().eq('id', id);
-    if (!error) setServices(services.filter(s => s.id !== id));
-  };
+  if (!confirm('Bu hizmeti vitrinden kaldırmak istediğinize emin misiniz?')) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from('services')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      // Supabase bir hata döndürdüyse yakala ve göster
+      console.error('Silme hatası detayları:', error);
+      
+      if (error.code === '23503') { // Foreign Key Violation kodu
+        alert('Bu hizmeti silemezsiniz çünkü geçmiş randevularla ilişkili! Bunun yerine hizmeti pasife almayı deneyin (Faz 2 özelliği).');
+      } else if (error.code === '42501') { // RLS Policy kodu
+        alert('Yetki Hatası: Bu işlemi yapmaya izniniz yok. Lütfen RLS politikalarını kontrol edin.');
+      } else {
+        alert(`Silme başarısız: ${error.message}`);
+      }
+      return;
+    }
+
+    // Hata yoksa state'i güncelle
+    setServices(services.filter(s => s.id !== id));
+    alert('Hizmet başarıyla silindi.');
+
+  } catch (err) {
+    console.error('Beklenmeyen hata:', err);
+    alert('Beklenmeyen bir hata oluştu.');
+  }
+};
 
   const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault();
