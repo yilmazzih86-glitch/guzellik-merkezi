@@ -1,0 +1,82 @@
+/* src/app/admin/Dashboard.module.css */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #111);
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary, #666);
+  margin-top: 0.25rem;
+}
+
+.date {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #666);
+  background: var(--color-bg-secondary, #f3f4f6);
+  padding: 0.5rem 1rem;
+  border-radius: 99px;
+}
+
+/* Card bileşeni zaten çerçeve ve padding veriyor, 
+   biz sadece iç düzeni ayarlıyoruz */
+.statCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 160px; /* Kartların eşit boyda görünmesine yardımcı olur */
+  justify-content: space-between;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary, #666);
+  letter-spacing: 0.05em;
+}
+
+.icon {
+  font-size: 1.25rem;
+  opacity: 0.7;
+}
+
+.statValue {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--color-primary, #000);
+  line-height: 1.1;
+  margin: 0.5rem 0;
+}
+
+.statTrend {
+  font-size: 0.8rem;
+  color: var(--color-text-tertiary, #888);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.sectionPlaceholder {
+  margin-top: 1rem;
+  padding: 3rem;
+  border: 2px dashed var(--color-border, #e5e7eb);
+  border-radius: var(--radius-md, 12px);
+  text-align: center;
+  color: var(--color-text-secondary, #9ca3af);
+  background-color: var(--color-bg-subtle, #f9fafb);
+}

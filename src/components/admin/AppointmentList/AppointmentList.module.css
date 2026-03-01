@@ -1,0 +1,80 @@
+/* src/components/admin/AppointmentList/AppointmentList.module.css */
+
+.container {
+  width: 100%;
+  overflow-x: auto; /* Mobilde tablo taşarsa kaydırma çubuğu çıksın */
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.table th {
+  background-color: var(--color-bg-secondary, #f9fafb);
+  color: var(--color-text-secondary, #666);
+  font-weight: 600;
+  padding: 1rem;
+  border-bottom: 2px solid var(--color-border, #eee);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border, #eee);
+  color: var(--color-text-primary, #333);
+  vertical-align: middle;
+}
+
+.row:hover {
+  background-color: var(--color-bg-subtle, #fcfcfc);
+}
+
+/* Durum Rozetleri (Badges) */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+/* Durum Renkleri */
+.confirmed {
+  background-color: #d1fae5; /* Yeşil */
+  color: #065f46;
+}
+
+.cancelled {
+  background-color: #fee2e2; /* Kırmızı */
+  color: #991b1b;
+}
+
+.completed {
+  background-color: #dbeafe; /* Mavi */
+  color: #1e40af;
+}
+
+.no_show {
+  background-color: #f3f4f6; /* Gri */
+  color: #374151;
+}
+
+.customerName {
+  font-weight: 600;
+  display: block;
+  color: var(--color-text-primary, #111);
+}
+
+.customerPhone {
+  font-size: 0.75rem;
+  color: #888;
+  margin-top: 0.25rem;
+  display: block;
+}

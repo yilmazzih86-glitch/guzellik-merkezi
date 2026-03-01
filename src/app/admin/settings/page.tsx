@@ -1,6 +1,8 @@
+// src/app/admin/settings/page.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link'; // Yönlendirme için eklendi
 import { supabaseClient } from '../../../server/db/supabaseClient';
 import { Card } from '../../../components/ui/Card/Card';
 import { Input } from '../../../components/ui/Input/Input';
@@ -46,9 +48,8 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Yeni Form State'leri
+  // Hizmet Ekleme State'i (Personel ekleme state'i kaldırıldı)
   const [newService, setNewService] = useState({ name: '', description: '', image_url: '', duration: '30', price: '' });
-  const [newStaff, setNewStaff] = useState({ name: '', title: '', image_url: '' });
 
   useEffect(() => {
     fetchData();
@@ -64,6 +65,7 @@ export default function SettingsPage() {
     const { data: servicesData } = await supabaseClient.from('services').select('*').order('created_at', { ascending: false });
     if (servicesData) setServices(servicesData as Service[]);
 
+    // Personel listesini sadece görüntüleme amaçlı çekiyoruz
     const { data: staffData } = await supabaseClient.from('staff').select('*').order('created_at', { ascending: false });
     if (staffData) setStaffList(staffData as Staff[]);
     
@@ -112,64 +114,36 @@ export default function SettingsPage() {
   };
 
   const handleDeleteService = async (id: string) => {
-  if (!confirm('Bu hizmeti vitrinden kaldırmak istediğinize emin misiniz?')) return;
+    if (!confirm('Bu hizmeti vitrinden kaldırmak istediğinize emin misiniz?')) return;
 
-  try {
-    const { error } = await supabaseClient
-      .from('services')
-      .delete()
-      .eq('id', id);
+    try {
+      const { error } = await supabaseClient
+        .from('services')
+        .delete()
+        .eq('id', id);
 
-    if (error) {
-      // Supabase bir hata döndürdüyse yakala ve göster
-      console.error('Silme hatası detayları:', error);
-      
-      if (error.code === '23503') { // Foreign Key Violation kodu
-        alert('Bu hizmeti silemezsiniz çünkü geçmiş randevularla ilişkili! Bunun yerine hizmeti pasife almayı deneyin (Faz 2 özelliği).');
-      } else if (error.code === '42501') { // RLS Policy kodu
-        alert('Yetki Hatası: Bu işlemi yapmaya izniniz yok. Lütfen RLS politikalarını kontrol edin.');
-      } else {
-        alert(`Silme başarısız: ${error.message}`);
+      if (error) {
+        console.error('Silme hatası detayları:', error);
+        if (error.code === '23503') {
+          alert('Bu hizmeti silemezsiniz çünkü geçmiş randevularla ilişkili! Bunun yerine hizmeti pasife almayı deneyin.');
+        } else if (error.code === '42501') {
+          alert('Yetki Hatası: Bu işlemi yapmaya izniniz yok.');
+        } else {
+          alert(`Silme başarısız: ${error.message}`);
+        }
+        return;
       }
-      return;
-    }
 
-    // Hata yoksa state'i güncelle
-    setServices(services.filter(s => s.id !== id));
-    alert('Hizmet başarıyla silindi.');
+      setServices(services.filter(s => s.id !== id));
+      alert('Hizmet başarıyla silindi.');
 
-  } catch (err) {
-    console.error('Beklenmeyen hata:', err);
-    alert('Beklenmeyen bir hata oluştu.');
-  }
-};
-
-  const handleAddStaff = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newStaff.name) return;
-
-    const { data, error } = await supabaseClient
-      .from('staff')
-      .insert([{
-        name: newStaff.name,
-        title: newStaff.title,
-        image_url: newStaff.image_url,
-        active: true
-      }])
-      .select()
-      .single();
-
-    if (data && !error) {
-      setStaffList([data as Staff, ...staffList]);
-      setNewStaff({ name: '', title: '', image_url: '' });
+    } catch (err) {
+      console.error('Beklenmeyen hata:', err);
+      alert('Beklenmeyen bir hata oluştu.');
     }
   };
 
-  const handleDeleteStaff = async (id: string) => {
-    if (!confirm('Bu uzmanı silmek istediğinize emin misiniz?')) return;
-    const { error } = await supabaseClient.from('staff').delete().eq('id', id);
-    if (!error) setStaffList(staffList.filter(s => s.id !== id));
-  };
+  // handleAddStaff ve handleDeleteStaff fonksiyonları KALDIRILDI.
 
   if (loading) {
     return (
@@ -194,17 +168,14 @@ export default function SettingsPage() {
         </Button>
       </div>
 
-      {/* Sola sıkışmayı çözen, iki kolonu ortalayıp genişleten 
-        özel Grid yapısı (auto-fit ve minmax ile ekranı tam kaplar)
-      */}
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', 
         gap: 'var(--space-32)',
-        alignItems: 'start' /* Kartların birbirine bağlı olarak uzamasını engeller */
+        alignItems: 'start'
       }}>
         
-        {/* SOL KOLON: İşletme & Uzmanlar */}
+        {/* SOL KOLON */}
         <div className={layoutStyles.stackLg}>
           
           {/* 1. İŞLETME BİLGİLERİ */}
@@ -226,32 +197,33 @@ export default function SettingsPage() {
             </div>
           </Card>
 
-          {/* 2. UZMAN YÖNETİMİ */}
+          {/* 2. UZMAN KADROSU (Sadece Görüntüleme ve Yönlendirme) */}
           <Card style={{ padding: 'var(--space-32)' }}>
-             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-12)', marginBottom: 'var(--space-24)' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: 'rgba(52, 152, 219, 0.1)', color: '#3498db', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-              </div>
-              <div>
-                <h3 style={{ margin: 0, color: 'var(--color-text-main)', fontSize: 'var(--text-lg)' }}>Uzman Kadrosu</h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', margin: 0 }}>Randevu alınabilen personeller</p>
-              </div>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-24)' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-12)' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: 'rgba(52, 152, 219, 0.1)', color: '#3498db', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, color: 'var(--color-text-main)', fontSize: 'var(--text-lg)' }}>Uzman Kadrosu</h3>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', margin: 0 }}>Kayıtlı personeller</p>
+                </div>
+               </div>
+               
+               {/* Yönlendirme Linki */}
+               <Link href="/admin/staff" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary)', fontWeight: '600', textDecoration: 'none', border: '1px solid var(--color-primary)', padding: '6px 12px', borderRadius: '20px' }}>
+                 Yönetim Paneli →
+               </Link>
             </div>
             
-            <form onSubmit={handleAddStaff} style={{ backgroundColor: 'var(--color-background)', padding: 'var(--space-24)', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--space-24)', border: '1px dashed var(--color-border)' }}>
-              <div className={layoutStyles.stack}>
-                <Input label="Uzman Adı Soyadı" value={newStaff.name} onChange={e => setNewStaff({...newStaff, name: e.target.value})} required placeholder="Örn: Dr. Ayşe Yılmaz" />
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-16)' }}>
-                  <Input label="Ünvan (Kıdemli Estetisyen)" value={newStaff.title} onChange={e => setNewStaff({...newStaff, title: e.target.value})} />
-                  <Input label="Profil Fotoğrafı (URL)" value={newStaff.image_url} onChange={e => setNewStaff({...newStaff, image_url: e.target.value})} placeholder="https://..." />
-                </div>
-                <Button type="submit" variant="secondary" style={{ marginTop: 'var(--space-8)' }}>Kadroya Ekle</Button>
-              </div>
-            </form>
+            {/* Form kaldırıldı, sadece bilgilendirme mesajı */}
+            <div style={{ backgroundColor: 'var(--color-background)', padding: 'var(--space-16)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-16)', border: '1px solid var(--color-border)', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
+              Personel ekleme, silme ve çalışma saati ayarları için <Link href="/admin/staff" style={{ color: 'var(--color-primary)', fontWeight: '500' }}>Uzman Kadrosu</Link> sayfasını kullanın.
+            </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-12)' }}>
               {staffList.map(staff => (
-                <div key={staff.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-12) var(--space-16)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', transition: 'all 0.2s' }}>
+                <div key={staff.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-12) var(--space-16)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', opacity: staff.active ? 1 : 0.6 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-16)' }}>
                     {staff.image_url ? (
                       <img src={staff.image_url} alt={staff.name} style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }} />
@@ -260,19 +232,19 @@ export default function SettingsPage() {
                     )}
                     <div>
                       <strong style={{ color: 'var(--color-text-main)', display: 'block' }}>{staff.name}</strong>
-                      <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{staff.title || 'Belirtilmedi'}</span>
+                      <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                        {staff.title || 'Belirtilmedi'} {staff.active ? '' : '(Pasif)'}
+                      </span>
                     </div>
                   </div>
-                  <button onClick={() => handleDeleteStaff(staff.id)} title="Uzmanı Sil" style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'none', border: 'none', color: 'var(--color-error)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                  </button>
+                  {/* Silme butonu kaldırıldı */}
                 </div>
               ))}
             </div>
           </Card>
         </div>
 
-        {/* SAĞ KOLON: Hizmetler */}
+        {/* SAĞ KOLON: Hizmetler (Aynı Kaldı) */}
         <div className={layoutStyles.stackLg}>
           <Card style={{ padding: 'var(--space-32)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-12)', marginBottom: 'var(--space-24)' }}>

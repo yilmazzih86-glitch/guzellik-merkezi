@@ -1,20 +1,46 @@
-// src/server/db/supabase.ts
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+// 1. SSR Client (Admin Dashboard için)
+// Kullanıcının tarayıcısındaki Cookie'leri kullanarak oturum açar.
+export async function createClient() {
+  const cookieStore = await cookies()
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Supabase URL veya Service Key eksik!');
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options)
+            })
+          } catch {
+            // Server Component içinde cookie set edilemez, hata yutulur.
+          }
+        },
+      },
+    }
+  )
 }
 
-// Server-only istemci. DİKKAT: Bu client RLS kurallarını bypass eder. 
-// Sadece güvenli API route'larında kullanılmalıdır.
+// 2. Admin Client (Service Role - Public Sayfalar ve Cron Joblar için)
+// RLS kurallarını atlayarak (Bypass) tüm veriye erişir.
+// DİKKAT: Sadece Server Component'lerde kullanılmalıdır!
 export const getAdminClient = () => {
-  return createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-};
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!, // .env dosyanızda bu anahtarın olduğundan emin olun
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      }
+    }
+  )
+}

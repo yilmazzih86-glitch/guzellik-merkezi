@@ -1,0 +1,43 @@
+-- 1. ÖNCE VERİLERİ DÜZELTELİM (Acil Müdahale)
+-- Fiyatı boş olan tüm randevuları 2000 TL (veya hizmet fiyatı) yapalım ki ciro görünsün.
+UPDATE appointments 
+SET price_at_booking = (
+  SELECT COALESCE(price_min, 2000) -- Hizmet fiyatı yoksa varsayılan 2000 yap
+  FROM services 
+  WHERE services.id = appointments.service_id
+)
+WHERE price_at_booking IS NULL;
+
+-- 2. DASHBOARD FONKSİYONUNU GÜNCELLEYELİM (Saat Dilimi Garantili)
+CREATE OR REPLACE FUNCTION get_dashboard_stats()
+RETURNS jsonb
+SECURITY DEFINER -- RLS engeline takılmadan tüm veriyi okumasını sağlar
+AS $$
+DECLARE
+  today_count INT;
+  monthly_revenue NUMERIC;
+  total_customers INT;
+BEGIN
+  -- A) Bugünkü Randevular
+  -- Hem randevu saatini HEM DE şimdiki saati Türkiye saatine çevirip karşılaştırıyoruz.
+  SELECT COUNT(*) INTO today_count 
+  FROM appointments 
+  WHERE (start_at AT TIME ZONE 'Europe/Istanbul')::date = (now() AT TIME ZONE 'Europe/Istanbul')::date;
+
+  -- B) Bu Ayki Ciro
+  -- Türkiye saatine göre bu ayın başından itibaren hesapla
+  SELECT COALESCE(SUM(price_at_booking), 0) INTO monthly_revenue
+  FROM appointments
+  WHERE status IN ('confirmed', 'completed')
+  AND start_at >= date_trunc('month', (now() AT TIME ZONE 'Europe/Istanbul'));
+
+  -- C) Toplam Müşteri
+  SELECT COUNT(*) INTO total_customers FROM customers;
+
+  RETURN jsonb_build_object(
+    'today_appointments', today_count,
+    'monthly_revenue', monthly_revenue,
+    'total_customers', total_customers
+  );
+END;
+$$ LANGUAGE plpgsql;

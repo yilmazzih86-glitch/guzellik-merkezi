@@ -1,3 +1,4 @@
+// src/app/admin/layout.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -47,13 +48,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return <>{children}</>;
   }
 
-  // Aktif sayfa sınıfını belirleyen yardımcı fonksiyon
-  const isActive = (path: string) => pathname === path ? styles.activeMenuItem : '';
+  // Aktif sayfa sınıfını belirleyen yardımcı fonksiyon (Alt sayfaları da kapsar)
+  const isActive = (path: string) => pathname?.startsWith(path) ? styles.activeMenuItem : '';
 
   return (
     <div className={styles.adminContainer}>
       
-      {/* --- SOL SİDEBAR --- */}
+      {/* --- SOL SIDEBAR --- */}
       <aside className={styles.sidebar}>
         
         {/* LOGO */}
@@ -66,7 +67,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* MENÜ LİNKLERİ */}
         <nav className={styles.menu}>
-          <Link href="/admin" className={`${styles.menuItem} ${isActive('/admin')}`}>
+          {/* Genel Bakış (Tam eşleşme gerekir) */}
+          <Link href="/admin" className={`${styles.menuItem} ${pathname === '/admin' ? styles.activeMenuItem : ''}`}>
             <svg className={styles.menuIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
             Genel Bakış
           </Link>
@@ -76,6 +78,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             Randevular
           </Link>
           
+          {/* --- YENİ EKLENEN LİNK: UZMAN KADROSU --- */}
+          <Link href="/admin/staff" className={`${styles.menuItem} ${isActive('/admin/staff')}`}>
+            <svg className={styles.menuIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+            Uzman Kadrosu
+          </Link>
+
           <Link href="/admin/customers" className={`${styles.menuItem} ${isActive('/admin/customers')}`}>
             <svg className={styles.menuIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
             Danışanlar
@@ -97,8 +105,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* --- SAĞ İÇERİK ALANI --- */}
       <div className={styles.mainWrapper}>
-        
-        {/* Üst Karşılama Barı */}
         <header className={styles.topbar}>
           <div className={styles.userProfile}>
             <div style={{ textAlign: 'right' }}>
@@ -109,7 +115,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </header>
 
-        {/* Ana İçerik */}
         <main className={styles.content}>
           {children}
         </main>
