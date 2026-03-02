@@ -1,22 +1,25 @@
-// src/app/admin/staff/new/page.tsx
 'use client';
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabaseClient } from '@/server/db/supabaseClient'; // Client-side client
+import { supabaseClient } from '@/server/db/supabaseClient'; 
 import layoutStyles from '@/styles/layout.module.css';
 import styles from './StaffForm.module.css';
+// 1. ImageUploader'ı içe aktarıyoruz
+import ImageUploader from '@/components/ui/ImageUploader/ImageUploader';
 
 export default function NewStaffPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form State
+  // 2. Resim State'i (Sizin eklediğiniz kısım)
+  const [imageUrl, setImageUrl] = useState<string>('');
+
+  // Form State (image_url'i buradan sildik çünkü yukarıdaki state'i kullanacağız)
   const [formData, setFormData] = useState({
     name: '',
     title: '',
-    image_url: '',
     active: true,
   });
 
@@ -25,7 +28,6 @@ export default function NewStaffPage() {
     setLoading(true);
     setError(null);
 
-    // 1. Validasyon
     if (!formData.name.trim()) {
       setError('Lütfen bir isim giriniz.');
       setLoading(false);
@@ -33,14 +35,14 @@ export default function NewStaffPage() {
     }
 
     try {
-      // 2. Supabase Insert İşlemi
+      // 3. BURASI DEĞİŞTİ: JSON.stringify yerine doğrudan objeye yazıyoruz
       const { error: dbError } = await supabaseClient
         .from('staff')
         .insert([
           {
             name: formData.name,
             title: formData.title || null,
-            image_url: formData.image_url || null,
+            image_url: imageUrl || null, // <--- İŞTE BURAYA YAZILIYOR
             active: formData.active,
             // availability varsayılan olarak boş JSON gider
           },
@@ -48,9 +50,8 @@ export default function NewStaffPage() {
 
       if (dbError) throw dbError;
 
-      // 3. Başarılıysa Listeye Dön
       router.push('/admin/staff');
-      router.refresh(); // Listeyi yenilemesi için
+      router.refresh(); 
       
     } catch (err: any) {
       console.error('Kayıt hatası:', err);
@@ -75,6 +76,15 @@ export default function NewStaffPage() {
             )}
 
             <form onSubmit={handleSubmit}>
+              
+              {/* 4. Resim Yükleme Alanını En Üste Koyduk */}
+              <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'center' }}>
+                <ImageUploader 
+                  folder="staff" 
+                  onUpload={(url) => setImageUrl(url)} 
+                />
+              </div>
+
               {/* İsim Alanı */}
               <div className={styles.formGroup}>
                 <label className={styles.label} htmlFor="name">Ad Soyad *</label>
@@ -100,22 +110,6 @@ export default function NewStaffPage() {
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 />
-              </div>
-
-              {/* Resim URL (Şimdilik manuel giriş, ileride upload yapılabilir) */}
-              <div className={styles.formGroup}>
-                <label className={styles.label} htmlFor="image_url">Profil Fotoğrafı (URL)</label>
-                <input
-                  id="image_url"
-                  type="url"
-                  className={styles.input}
-                  placeholder="https://..."
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                />
-                <p style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.5rem' }}>
-                  Not: Şimdilik buraya bir resim linki yapıştırın. Dosya yükleme özelliği Faz 2'de eklenecek.
-                </p>
               </div>
 
               {/* Aktiflik Durumu */}
