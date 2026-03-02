@@ -2,11 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card } from '../ui/Card/Card';
-import { Button } from '../ui/Button/Button';
-import { Input } from '../ui/Input/Input';
-import layoutStyles from '../../styles/layout.module.css';
-import Skeleton from '../ui/Skeleton/Skeleton';
+import { Card } from '../ui/Card/Card'; // Yolu kontrol edin
+import { Button } from '../ui/Button/Button'; // Yolu kontrol edin
+import { Input } from '../ui/Input/Input'; // Yolu kontrol edin
+import layoutStyles from '../../styles/layout.module.css'; // Yolu kontrol edin
+import Skeleton from '../ui/Skeleton/Skeleton'; // Yolu kontrol edin
+
+// Eğer bu bileşenler yoksa basit HTML kullanacağız, ama var varsayıyoruz.
+// Stil dosyanızın yerini projenize göre teyit edin.
 
 interface BookingWizardProps {
   initialServices: any[];
@@ -36,27 +39,33 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
 
   // Adım 3'e geçildiğinde veya tarih değiştiğinde uygun saatleri (availability) getir
   useEffect(() => {
-    if (step === 3 && selectedService && selectedDate) {
+    // Sadece personel VE hizmet seçiliyse çalışsın
+    if (step === 3 && selectedService && selectedStaff && selectedDate) {
       fetchSlots();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, selectedDate]);
+  }, [step, selectedDate, selectedStaff]); // selectedStaff eklendi
 
   const fetchSlots = async () => {
     setLoadingSlots(true);
     setSelectedTimeSlot(null);
     setError('');
+    setSlots([]); // Önce temizle
     
     try {
-      let url = `/api/availability?date=${selectedDate}&serviceId=${selectedService.id}`;
-      if (selectedStaff) url += `&staffId=${selectedStaff}`;
+      // URL oluşturma
+      let url = `/api/availability?date=${selectedDate}&serviceId=${selectedService.id}&staffId=${selectedStaff}`;
 
       const res = await fetch(url);
-      const data = await res.json();
+      const data = await res.json(); // API'den gelen cevap: [{ slot_time: '09:00', is_available: true }, ...]
       
       if (!res.ok) throw new Error(data.error || 'Saatler getirilemedi.');
-      setSlots(data.slots || []);
+      
+      // DÜZELTME BURADA: API direkt array dönüyor, "data.slots" değil "data"
+      setSlots(data || []); 
+
     } catch (err: any) {
+      console.error(err); // Konsola da basalım
       setError(err.message);
     } finally {
       setLoadingSlots(false);
@@ -70,13 +79,18 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
     setError('');
 
     try {
+        // Tarih + Saat birleştirme
+        // selectedDate: "2026-03-02"
+        // selectedTimeSlot: "09:00"
+        const startAt = `${selectedDate}T${selectedTimeSlot}:00`;
+
       const res = await fetch('/api/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           serviceId: selectedService.id,
           staffId: selectedStaff,
-          startAt: selectedTimeSlot,
+          startAt: startAt, // API'ye tam tarih-saat formatında gönderiyoruz
           customer
         })
       });
@@ -94,12 +108,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
     }
   };
 
-  const formatTime = (isoString: string) => {
-    const d = new Date(isoString);
-    return d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  const formatTime = (timeStr: string) => {
+    // API'den "09:00" gibi string geliyor, direkt kullanabiliriz veya formatlayabiliriz
+    return timeStr;
   };
 
-  // İleride webhook (n8n vs) veya ödeme adımları eklediğimizde bu yapı çok esnek olacak
   return (
     <Card className={layoutStyles.stack}>
       {/* İlerleme ve Başlık */}
@@ -153,16 +166,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
       {step === 2 && (
         <div className={`animate-fade-up ${layoutStyles.stack}`}>
           <div className={layoutStyles.grid}>
-            {/* "Fark Etmez" Seçeneği */}
-            <Card 
-              interactive
-              selected={selectedStaff === null}
-              onClick={() => setSelectedStaff(null)}
-              style={{ padding: 'var(--space-16)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
-            >
-              <strong style={{ fontSize: 'var(--text-lg)', color: 'var(--color-text-main)' }}>Fark Etmez</strong>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', marginTop: 'var(--space-4)' }}>Herhangi bir uzman</div>
-            </Card>
+            {/* "Fark Etmez" seçeneğini GEÇİCİ olarak kaldırdık. 
+                Çünkü API şu an zorunlu olarak staffId istiyor.
+            */}
             
             {initialStaff.map(stf => (
               <Card 
@@ -178,7 +184,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-24)' }}>
             <Button variant="secondary" onClick={() => setStep(1)}>Geri</Button>
-            <Button size="lg" onClick={() => setStep(3)}>Devam Et</Button>
+            {/* Personel seçilmeden geçişi engelledik */}
+            <Button size="lg" disabled={!selectedStaff} onClick={() => setStep(3)}>Devam Et</Button>
           </div>
         </div>
       )}
@@ -196,43 +203,40 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
 
           <div style={{ marginTop: 'var(--space-16)' }}>
             <h4 style={{ marginBottom: 'var(--space-12)', color: 'var(--color-text-main)' }}>Uygun Saatler</h4>
+            
             {loadingSlots ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-12)' }}>
-                {/* 6-7 tane rastgele buton boyunda kutu oluşturuyoruz */}
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                  <Skeleton 
-                    key={i} 
-                    width="86px" // Ortalama bir saat butonu genişliği
-                    height="42px" // Buton yüksekliği
-                    borderRadius="var(--radius-md)" 
-                  />
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                   <div key={i} style={{ width: '80px', height: '40px', backgroundColor: '#f3f4f6', borderRadius: '8px' }}></div>
                 ))}
               </div>
             ) : slots.length === 0 ? (
-              <Card style={{ backgroundColor: '#FDEDEC', border: 'none', padding: 'var(--space-16)' }}>
-                <p style={{ color: 'var(--color-error)', margin: 0 }}>Bu tarihte uygun saat bulunamadı. Lütfen farklı bir tarih seçin.</p>
+              <Card style={{ backgroundColor: '#fff', border: '1px solid #eee', padding: 'var(--space-16)' }}>
+                <p style={{ color: 'var(--color-text-muted)', margin: 0, textAlign: 'center' }}>
+                    Bu tarihte uygun saat bulunamadı.<br/>
+                    <small>Lütfen başka bir tarih seçin veya personelin çalışma saatlerini kontrol edin.</small>
+                </p>
               </Card>
             ) : (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-12)' }}>
                 {slots.map((slot, idx) => (
                   <button
                     key={idx}
-                    disabled={!slot.available}
-                    onClick={() => setSelectedTimeSlot(slot.start)}
+                    disabled={!slot.is_available} // API'den "is_available" geliyor
+                    onClick={() => setSelectedTimeSlot(slot.slot_time)} // API'den "slot_time" geliyor
                     style={{
                       padding: 'var(--space-12) var(--space-24)',
-                      border: `1px solid ${selectedTimeSlot === slot.start ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                      backgroundColor: selectedTimeSlot === slot.start ? 'var(--color-primary)' : slot.available ? 'var(--color-surface)' : 'var(--color-background)',
-                      color: selectedTimeSlot === slot.start ? '#fff' : slot.available ? 'var(--color-text-main)' : 'var(--color-text-muted)',
+                      border: `1px solid ${selectedTimeSlot === slot.slot_time ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                      backgroundColor: selectedTimeSlot === slot.slot_time ? 'var(--color-primary)' : slot.is_available ? 'var(--color-surface)' : 'var(--color-background)',
+                      color: selectedTimeSlot === slot.slot_time ? '#fff' : slot.is_available ? 'var(--color-text-main)' : 'var(--color-text-muted)',
                       borderRadius: 'var(--radius-md)',
-                      cursor: slot.available ? 'pointer' : 'not-allowed',
-                      fontWeight: selectedTimeSlot === slot.start ? '600' : '400',
-                      transition: 'all var(--transition-fast)',
-                      opacity: slot.available ? 1 : 0.6,
-                      boxShadow: selectedTimeSlot === slot.start ? '0 4px 12px rgba(212, 175, 55, 0.3)' : 'none'
+                      cursor: slot.is_available ? 'pointer' : 'not-allowed',
+                      fontWeight: selectedTimeSlot === slot.slot_time ? '600' : '400',
+                      transition: 'all 0.2s',
+                      opacity: slot.is_available ? 1 : 0.5
                     }}
                   >
-                    {formatTime(slot.start)}
+                    {formatTime(slot.slot_time)}
                   </button>
                 ))}
               </div>

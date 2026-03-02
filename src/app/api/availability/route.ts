@@ -1,93 +1,67 @@
-// src/app/api/availability/route.ts
+import { createClient } from '@/server/db/supabase';
 import { NextResponse } from 'next/server';
-import { getAdminClient } from '../../../server/db/supabase';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const dateStr = searchParams.get('date'); // YYYY-MM-DD
+  
+  const date = searchParams.get('date');
+  const staffId = searchParams.get('staffId');
   const serviceId = searchParams.get('serviceId');
 
-  if (!dateStr || !serviceId) {
-    return NextResponse.json({ error: 'date ve serviceId zorunludur.' }, { status: 400 });
+  // --- DEBUG LOG ---
+  console.log("-------------------------------------------------");
+  console.log("📡 API İSTEĞİ GELDİ:");
+  console.log("👉 Tarih:", date);
+  console.log("👉 Staff ID:", staffId);
+  console.log("👉 Service ID:", serviceId); // Burası null mı geliyor?
+  // -----------------
+
+  if (!date || !staffId || !serviceId) {
+    return NextResponse.json(
+      { error: 'Eksik parametreler.' }, 
+      { status: 400 }
+    );
   }
 
-  const supabase = getAdminClient();
+  const supabase = await createClient();
 
-  try {
-    // 1. İşletme ayarlarını ve servis süresini çek
-    const [settingsRes, serviceRes] = await Promise.all([
-      supabase.from('settings').select('opening_hours, booking_rules, timezone').single(),
-      supabase.from('services').select('duration_min').eq('id', serviceId).single()
-    ]);
+  // Hizmet Süresi Sorgusu
+  const { data: service, error: serviceError } = await supabase
+    .from('services')
+    .select('id, duration_min') // Sadece gerekli alanlar
+    .eq('id', serviceId)
+    .single();
 
-    if (settingsRes.error || serviceRes.error) throw new Error('Ayar veya servis bulunamadı.');
-
-    const { opening_hours, booking_rules, timezone } = settingsRes.data;
-    const { duration_min } = serviceRes.data;
-
-    // 2. İstenen tarihin gününü bul (mon, tue, wed...)
-    const dateObj = new Date(dateStr);
-    const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-    const dayOfWeek = days[dateObj.getDay()];
-    const todayHours = opening_hours[dayOfWeek] || [];
-
-    // 3. O güne ait mevcut randevuları çek (Çakışma kontrolü için)
-    const startOfDay = new Date(`${dateStr}T00:00:00.000Z`).toISOString();
-    const endOfDay = new Date(`${dateStr}T23:59:59.999Z`).toISOString();
-
-    const { data: appointments } = await supabase
-      .from('appointments')
-      .select('start_at, end_at')
-      .eq('status', 'confirmed')
-      .gte('start_at', startOfDay)
-      .lte('start_at', endOfDay);
-
-    const bookedSlots = appointments || [];
-    const slots = [];
-    const now = new Date();
-    
-    // Minimum bildirim süresini (min_notice_minutes) hesapla
-    const minNoticeMs = (booking_rules.min_notice_minutes || 0) * 60 * 1000;
-    const earliestAllowedTime = now.getTime() + minNoticeMs;
-
-    // 4. Slotları oluştur
-    for (const interval of todayHours) {
-      // Örn interval: { start: "10:00", end: "20:00" }
-      let currentSlotTime = new Date(`${dateStr}T${interval.start}:00.000Z`).getTime();
-      const endTime = new Date(`${dateStr}T${interval.end}:00.000Z`).getTime();
-      const slotDurationMs = (booking_rules.slot_minutes || 30) * 60 * 1000;
-      const serviceDurationMs = duration_min * 60 * 1000;
-
-      while (currentSlotTime + serviceDurationMs <= endTime) {
-        const slotStart = new Date(currentSlotTime);
-        const slotEnd = new Date(currentSlotTime + serviceDurationMs);
-        
-        // Geçmişte mi veya min_notice kuralına takılıyor mu?
-        let isAvailable = slotStart.getTime() >= earliestAllowedTime;
-
-        // Randevu çakışma kontrolü
-        if (isAvailable) {
-          const hasOverlap = bookedSlots.some((app: { start_at: string; end_at: string }) => {
-            const appStart = new Date(app.start_at).getTime();
-            const appEnd = new Date(app.end_at).getTime();
-            return currentSlotTime < appEnd && slotEnd.getTime() > appStart;
-          });
-          if (hasOverlap) isAvailable = false;
-        }
-
-        slots.push({
-          start: slotStart.toISOString(),
-          end: slotEnd.toISOString(),
-          available: isAvailable
-        });
-
-        currentSlotTime += slotDurationMs; // Sonraki slota geç
-      }
-    }
-
-    return NextResponse.json({ timezone, slots });
-
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  // --- DEBUG LOG (VERİTABANI SONUCU) ---
+  if (serviceError) {
+    console.error("❌ DB HATASI (Service):", serviceError.message);
+    console.error("❌ DB HATASI (Kod):", serviceError.code);
+    console.error("❌ DB HATASI (Detay):", serviceError.details);
+  } else {
+    console.log("✅ Hizmet Bulundu:", service);
   }
+  // -------------------------------------
+
+  if (serviceError || !service) {
+    // Hata detayını ekrana da basalım ki görelim
+    return NextResponse.json({ 
+      error: 'Seçilen hizmet bulunamadı.', 
+      details: serviceError ? serviceError.message : 'Veri null döndü' 
+    }, { status: 404 });
+  }
+
+  // RPC Çağrısı
+  const { data: slots, error: rpcError } = await supabase
+    .rpc('get_available_slots', {
+      p_date: date,
+      p_staff_id: staffId,
+      p_duration_min: service.duration_min
+    });
+
+  if (rpcError) {
+    console.error("❌ RPC HATASI:", rpcError);
+    return NextResponse.json({ error: 'RPC Hatası', details: rpcError.message }, { status: 500 });
+  }
+
+  return NextResponse.json(slots);
 }
