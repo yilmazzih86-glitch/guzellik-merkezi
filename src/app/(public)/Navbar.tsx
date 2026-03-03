@@ -27,7 +27,7 @@ export const Navbar = () => {
             <Link href="/" className={styles.link}>Anasayfa</Link>
             <Link href="/services" className={styles.link}>Hizmetlerimiz</Link>
             <Link href="#" className={styles.link}>Uzmanlarımız</Link>
-            <Link href="#" className={styles.link}>İletişim</Link>
+            <Link href="/contact" className={styles.link}>İletişim</Link>
           </div>
 
           <div className={styles.actions}>
@@ -74,7 +74,7 @@ export const Navbar = () => {
         <Link href="/" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>Anasayfa</Link>
         <Link href="/services" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>Hizmetlerimiz</Link>
         <Link href="#" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>Uzmanlarımız</Link>
-        <Link href="#" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>İletişim</Link>
+        <Link href="/contact" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>İletişim</Link>
       </div>
     </header>
   );
