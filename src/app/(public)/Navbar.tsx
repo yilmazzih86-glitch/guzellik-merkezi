@@ -25,13 +25,14 @@ export const Navbar = () => {
           {/* Masaüstü Linkler */}
           <div className={styles.links}>
             <Link href="/" className={styles.link}>Anasayfa</Link>
-            <Link href="/services" className={styles.link}>Hizmetlerimiz</Link>
-            <Link href="#" className={styles.link}>Uzmanlarımız</Link>
-            <Link href="/contact" className={styles.link}>İletişim</Link>
+            <Link href="/hizmetler" className={styles.link}>Hizmetlerimiz</Link>
+            <Link href="/uzmanlar" className={styles.link}>Uzmanlarımız</Link>
+            <Link href="/iletisim" className={styles.link}>İletişim</Link>
+            
           </div>
 
           <div className={styles.actions}>
-            <Link href="/book">
+            <Link href="/online-randevu">
               <Button 
                 size="md" 
                 style={{ 
@@ -72,9 +73,9 @@ export const Navbar = () => {
       {/* MOBİL AÇILIR MENÜ (Sadece butona basıldığında aşağı süzülür) */}
       <div className={`${styles.mobileMenu} ${isMobileMenuOpen ? styles.open : ''}`}>
         <Link href="/" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>Anasayfa</Link>
-        <Link href="/services" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>Hizmetlerimiz</Link>
-        <Link href="#" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>Uzmanlarımız</Link>
-        <Link href="/contact" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>İletişim</Link>
+        <Link href="/hizmetler" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>Hizmetlerimiz</Link>
+        <Link href="/uzmanlar" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>Uzmanlarımız</Link>
+        <Link href="/iletisim" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>İletişim</Link>
       </div>
     </header>
   );

@@ -1,0 +1,181 @@
+/* src/components/public/BookingWizard.module.css */
+
+/* Genel Grid Yapıları */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.staffGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.5rem;
+}
+
+/* --- HİZMET KARTI TASARIMI --- */
+.serviceCard {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  background-color: var(--color-surface);
+  position: relative;
+}
+
+.serviceCard:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.serviceCard.selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+/* Hizmet Resmi */
+.serviceImageWrapper {
+  width: 100%;
+  height: 180px;
+  background-color: var(--color-background);
+  position: relative;
+}
+
+.serviceImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.servicePlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  background-color: #f3f4f6;
+}
+
+/* Hizmet İçeriği */
+.serviceContent {
+  padding: 1rem;
+}
+
+.serviceName {
+  font-weight: 600;
+  color: var(--color-text-main);
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.serviceMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.price {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* --- PERSONEL KARTI TASARIMI --- */
+.staffCard {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  background-color: var(--color-surface);
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.staffCard:hover {
+  border-color: var(--color-primary);
+  background-color: rgba(212, 175, 55, 0.05); /* Hafif sarı/gold ton */
+}
+
+.staffCard.selected {
+  border-color: var(--color-primary);
+  background-color: rgba(212, 175, 55, 0.1);
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+/* Personel Avatarı */
+.avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #fff;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.avatarFallback {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 600;
+  border: 3px solid #fff;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.staffName {
+  font-weight: 600;
+  color: var(--color-text-main);
+  font-size: 1.1rem;
+}
+
+.staffTitle {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-top: -0.5rem;
+}
+
+/* Saat Slotları */
+.slotGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.slotButton {
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text-main);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.slotButton:hover:not(:disabled) {
+  border-color: var(--color-primary);
+}
+
+.slotButton.selected {
+  background-color: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.slotButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: var(--color-background);
+}
