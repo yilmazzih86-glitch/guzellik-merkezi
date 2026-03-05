@@ -7,22 +7,22 @@ import { Card } from '../ui/Card/Card';
 import { Button } from '../ui/Button/Button'; 
 import { Input } from '../ui/Input/Input'; 
 import layoutStyles from '../../styles/layout.module.css'; 
-import styles from './BookingWizard.module.css'; // YENİ Stil Dosyası
+import styles from './BookingWizard.module.css'; 
 
-// Tipler
+// --- TİPLER ---
 interface Service {
   id: string;
   name: string;
   duration_min: number;
   price_min: number;
-  image_url?: string | null; // Görsel eklendi
+  image_url?: string | null;
 }
 
 interface Staff {
   id: string;
   name: string;
   title?: string;
-  image_url?: string | null; // Görsel eklendi
+  image_url?: string | null;
 }
 
 interface BookingWizardProps {
@@ -33,63 +33,71 @@ interface BookingWizardProps {
 export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, initialStaff }) => {
   const router = useRouter();
   
-  // State'ler
+  // --- STATE YÖNETİMİ ---
   const [step, setStep] = useState(1);
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
-  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null); // Obje olarak tutuyoruz artık
   
-  // Tarih ve Saat
+  // Seçimler
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [slots, setSlots] = useState<any[]>([]);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
+
+  // Slot (Saat) Verileri
+  // API artık ["09:00", "09:30"] gibi düz metin listesi dönüyor
+  const [slots, setSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
-  // Müşteri
+  // Müşteri Formu
   const [customer, setCustomer] = useState({ fullName: '', phone: '', email: '' });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // Yardımcı Fonksiyon: İsimden Baş Harf Çıkarma
-  // Örn: "Yılmaz Bercanlı" -> "YB"
+  // Yardımcı Fonksiyon: İsimden Baş Harf Çıkarma (YB gibi)
   const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase();
+    return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
   };
 
-  // Slotları Getir
+  // --- API'DEN SAATLERİ ÇEKME ---
   useEffect(() => {
-    if (step === 3 && selectedService && selectedStaff && selectedDate) {
-      fetchSlots();
+    // Hizmet, Personel veya Tarih eksikse işlem yapma
+    if (!selectedDate || !selectedStaff || !selectedService) {
+      setSlots([]);
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, selectedDate, selectedStaff]); 
 
-  const fetchSlots = async () => {
-    setLoadingSlots(true);
-    setSelectedTimeSlot(null);
-    setSlots([]);
-    
-    try {
-      // API isteği
-      const url = `/api/availability?date=${selectedDate}&serviceId=${selectedService!.id}&staffId=${selectedStaff!.id}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      
-      if (!res.ok) throw new Error(data.error || 'Saatler getirilemedi.');
-      setSlots(data || []); 
+    const fetchSlots = async () => {
+      setLoadingSlots(true);
+      setSlots([]); // Yüklenirken temizle
+      setSelectedTimeSlot(null); // Tarih değişince seçimi sıfırla
 
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message);
-    } finally {
-      setLoadingSlots(false);
-    }
-  };
+      try {
+        const params = new URLSearchParams({
+          date: selectedDate,
+          staffId: selectedStaff.id,
+          serviceId: selectedService.id
+        });
 
+        const res = await fetch(`/api/availability?${params.toString()}`);
+        
+        if (!res.ok) throw new Error('Saatler alınamadı.');
+        
+        const data = await res.json();
+        // Gelen veriyi (string array) state'e atıyoruz
+        setSlots(data || []);
+
+      } catch (err: any) {
+        console.error("Slot hatası:", err);
+        setSlots([]); // Hata olursa boş liste
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+
+    fetchSlots();
+
+  }, [selectedDate, selectedStaff, selectedService]); // Bu 3'ü değişince tetiklenir
+
+  // --- RANDEVU ONAYLAMA (SUBMIT) ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -112,8 +120,16 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Randevu oluşturulamadı.');
 
-      // BAŞARILI SAYFASINA YÖNLENDİRME (SEO UYUMLU URL)
-      router.push('/basarili'); 
+      // Başarılı sayfasına parametrelerle yönlendir
+      const params = new URLSearchParams({
+        date: selectedDate || '',
+        time: selectedTimeSlot || '',
+        staff: selectedStaff?.name || '',
+        service: selectedService?.name || ''
+      });
+
+      router.push(`/randevu-onay?${params.toString()}`);
+      
     } catch (err: any) {
       setError(err.message);
       setSubmitting(false);
@@ -141,7 +157,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
         </div>
       )}
 
-      {/* --- ADIM 1: HİZMET SEÇİMİ (GÖRSELLEŞTİRİLDİ) --- */}
+      {/* --- ADIM 1: HİZMET SEÇİMİ --- */}
       {step === 1 && (
         <div className="animate-fade-up">
           <div className={styles.grid}>
@@ -151,17 +167,16 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
                 className={`${styles.serviceCard} ${selectedService?.id === srv.id ? styles.selected : ''}`}
                 onClick={() => setSelectedService(srv)}
               >
-                {/* Resim Alanı */}
                 <div className={styles.serviceImageWrapper}>
                   {srv.image_url ? (
                     <img src={srv.image_url} alt={srv.name} className={styles.serviceImage} />
                   ) : (
                     <div className={styles.servicePlaceholder}>
-                      <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                      {/* Basit ikon */}
+                      <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     </div>
                   )}
                 </div>
-                {/* İçerik */}
                 <div className={styles.serviceContent}>
                   <div className={styles.serviceName}>{srv.name}</div>
                   <div className={styles.serviceMeta}>
@@ -178,7 +193,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
         </div>
       )}
 
-      {/* --- ADIM 2: PERSONEL SEÇİMİ (AVATARLI) --- */}
+      {/* --- ADIM 2: PERSONEL SEÇİMİ --- */}
       {step === 2 && (
         <div className="animate-fade-up">
            <div className={styles.staffGrid}>
@@ -188,15 +203,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
                 className={`${styles.staffCard} ${selectedStaff?.id === stf.id ? styles.selected : ''}`}
                 onClick={() => setSelectedStaff(stf)}
               >
-                {/* Avatar veya Baş Harfler */}
                 {stf.image_url ? (
                   <img src={stf.image_url} alt={stf.name} className={styles.avatar} />
                 ) : (
-                  <div className={styles.avatarFallback}>
-                    {getInitials(stf.name)}
-                  </div>
+                  <div className={styles.avatarFallback}>{getInitials(stf.name)}</div>
                 )}
-                
                 <div>
                   <div className={styles.staffName}>{stf.name}</div>
                   <div className={styles.staffTitle}>{stf.title || 'Uzman'}</div>
@@ -211,7 +222,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
         </div>
       )}
 
-      {/* --- ADIM 3: TARİH VE SAAT --- */}
+      {/* --- ADIM 3: TARİH VE SAAT (GÜNCELLENDİ) --- */}
       {step === 3 && (
         <div className="animate-fade-up">
           <div style={{ maxWidth: '400px', marginBottom: '2rem' }}>
@@ -220,7 +231,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
               type="date" 
               value={selectedDate} 
               min={new Date().toISOString().split('T')[0]} 
-              onChange={(e) => setSelectedDate(e.target.value)} 
+              onChange={(e: any) => setSelectedDate(e.target.value)} 
             />
           </div>
 
@@ -232,18 +243,19 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
              </div>
           ) : slots.length === 0 ? (
             <div style={{ padding: '2rem', textAlign: 'center', backgroundColor: '#fff', border: '1px solid #eee', borderRadius: '8px', color: '#666' }}>
-              Bu tarihte uygun saat bulunamadı.
+              {selectedDate ? "Bu tarihte uygun saat bulunamadı." : "Lütfen tarih seçiniz."}
             </div>
           ) : (
             <div className={styles.slotGrid}>
-              {slots.map((slot, idx) => (
+              {/* API'den gelen ["14:00", "14:30"] listesini basıyoruz */}
+              {slots.map((slot) => (
                 <button
-                  key={idx}
-                  className={`${styles.slotButton} ${selectedTimeSlot === slot.slot_time ? styles.selected : ''}`}
-                  disabled={!slot.is_available}
-                  onClick={() => setSelectedTimeSlot(slot.slot_time)}
+                  key={slot}
+                  type="button"
+                  className={`${styles.slotButton} ${selectedTimeSlot === slot ? styles.selected : ''}`}
+                  onClick={() => setSelectedTimeSlot(slot)}
                 >
-                  {slot.slot_time}
+                  {slot}
                 </button>
               ))}
             </div>

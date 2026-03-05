@@ -5,6 +5,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary';
   size?: 'md' | 'lg';
   isLoading?: boolean;
+  fullWidth?: boolean; // ✅ EKLENDİ: Artık fullWidth özelliğini kabul ediyoruz
 }
 
 export const Button: React.FC<ButtonProps> = ({ 
@@ -12,15 +13,17 @@ export const Button: React.FC<ButtonProps> = ({
   variant = 'primary', 
   size = 'md', 
   isLoading, 
+  fullWidth = false, // ✅ Varsayılan değer false
   className = '',
   disabled,
   ...props 
 }) => {
-  // Sınıfları güvenli ve temiz bir şekilde birleştirme
+  // Sınıfları birleştirme
   const rootClass = [
     styles.btn, 
     styles[variant], 
-    styles[size], 
+    styles[size],
+    fullWidth ? styles.fullWidth : '', // ✅ EĞER fullWidth ise stili ekle
     className
   ].filter(Boolean).join(' ');
 

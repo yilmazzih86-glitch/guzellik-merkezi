@@ -1,57 +1,91 @@
 // src/app/api/appointments/route.ts
-import { NextResponse } from 'next/server';
-import { getAdminClient } from '../../../server/db/supabase';
 
-export async function POST(request: Request) {
+// ✅ DOĞRU IMPORT (Server Side)
+import { createClient } from '@/server/db/supabase';
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(request: NextRequest) {
+  // Sunucu taraflı client oluşturuluyor
+  const supabase = await createClient();
+  
   try {
     const body = await request.json();
     const { serviceId, staffId, startAt, customer } = body;
 
-    if (!serviceId || !startAt || !customer?.fullName || !customer?.email || !customer?.phone) {
-      return NextResponse.json({ error: 'Eksik bilgi gönderildi.' }, { status: 400 });
+    // 1. Validasyon
+    if (!serviceId || !staffId || !startAt || !customer?.phone) {
+      return NextResponse.json({ error: 'Eksik bilgi.' }, { status: 400 });
     }
 
-    const supabase = getAdminClient();
-
-    // Servis süresini bul ve bitiş tarihini (endAt) hesapla
+    // 2. Hizmet Detaylarını Çek
     const { data: service, error: serviceError } = await supabase
       .from('services')
-      .select('duration_min')
+      .select('duration_min, price_min')
       .eq('id', serviceId)
       .single();
 
     if (serviceError || !service) {
-      return NextResponse.json({ error: 'Servis bulunamadı.' }, { status: 404 });
+      return NextResponse.json({ error: 'Hizmet bulunamadı.' }, { status: 400 });
     }
 
-    const startDateTime = new Date(startAt);
-    const endDateTime = new Date(startDateTime.getTime() + service.duration_min * 60000);
+    // Bitiş saatini hesapla
+    const startDate = new Date(startAt);
+    const endDate = new Date(startDate.getTime() + service.duration_min * 60000); // dk -> ms
 
-    // SQL RPC fonksiyonumuzu çağırarak güvenli Transaction başlatıyoruz
-    const { data, error: rpcError } = await supabase.rpc('book_appointment', {
-      p_customer_name: customer.fullName,
-      p_customer_phone: customer.phone,
-      p_customer_email: customer.email,
-      p_service_id: serviceId,
-      p_staff_id: staffId || null,
-      p_start_at: startDateTime.toISOString(),
-      p_end_at: endDateTime.toISOString()
-    });
+    // 3. MÜŞTERİ YÖNETİMİ
+    let customerId;
+    
+    // Telefon ile müşteri ara
+    const { data: existingCustomer } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('phone', customer.phone)
+      .single();
 
-    if (rpcError) {
-      if (rpcError.message.includes('OVERLAP_ERROR')) {
-        return NextResponse.json({ error: 'Seçilen saat dilimi artık müsait değil. Lütfen başka bir saat seçin.' }, { status: 409 });
+    if (existingCustomer) {
+      customerId = existingCustomer.id;
+    } else {
+      // Yoksa oluştur
+      const { data: newCustomer, error: createCustomerError } = await supabase
+        .from('customers')
+        .insert({
+          full_name: customer.fullName,
+          phone: customer.phone,
+          email: customer.email
+        })
+        .select()
+        .single();
+
+      if (createCustomerError) {
+        return NextResponse.json({ error: 'Müşteri kaydı başarısız: ' + createCustomerError.message }, { status: 500 });
       }
-      throw rpcError;
+      customerId = newCustomer.id;
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      appointment: data 
-    }, { status: 201 });
+    // 4. RANDEVU KAYDI (Direct Insert)
+    const { data: appointment, error: appointmentError } = await supabase
+      .from('appointments')
+      .insert({
+        customer_id: customerId,
+        service_id: serviceId,
+        staff_id: staffId,
+        start_at: startAt,
+        end_at: endDate.toISOString(),
+        price_at_booking: service.price_min,
+        status: 'confirmed'
+      })
+      .select()
+      .single();
 
-  } catch (error: any) {
-    console.error('Randevu oluşturma hatası:', error);
-    return NextResponse.json({ error: 'Randevu oluşturulurken beklenmeyen bir hata oluştu.' }, { status: 500 });
+    if (appointmentError) {
+      console.error('Randevu Hatası:', appointmentError);
+      return NextResponse.json({ error: 'Randevu kaydedilemedi: ' + appointmentError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, id: appointment.id });
+
+  } catch (err: any) {
+    console.error('Sunucu Hatası:', err);
+    return NextResponse.json({ error: 'Sunucu hatası: ' + err.message }, { status: 500 });
   }
 }

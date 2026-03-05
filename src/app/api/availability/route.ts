@@ -1,67 +1,59 @@
-import { createClient } from '@/server/db/supabase';
-import { NextResponse } from 'next/server';
+// src/app/api/availability/route.ts
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  
+// ✅ DOĞRU IMPORT (Server Side)
+import { createClient } from '@/server/db/supabase'; 
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
   const date = searchParams.get('date');
   const staffId = searchParams.get('staffId');
   const serviceId = searchParams.get('serviceId');
 
-  // --- DEBUG LOG ---
-  console.log("-------------------------------------------------");
-  console.log("📡 API İSTEĞİ GELDİ:");
-  console.log("👉 Tarih:", date);
-  console.log("👉 Staff ID:", staffId);
-  console.log("👉 Service ID:", serviceId); // Burası null mı geliyor?
-  // -----------------
-
-  if (!date || !staffId || !serviceId) {
-    return NextResponse.json(
-      { error: 'Eksik parametreler.' }, 
-      { status: 400 }
-    );
+  if (!date || !staffId) {
+    return NextResponse.json({ error: 'Tarih ve Personel seçimi zorunludur.' }, { status: 400 });
   }
 
+  // Sunucu taraflı client oluşturuluyor
   const supabase = await createClient();
 
-  // Hizmet Süresi Sorgusu
-  const { data: service, error: serviceError } = await supabase
-    .from('services')
-    .select('id, duration_min') // Sadece gerekli alanlar
-    .eq('id', serviceId)
-    .single();
+  try {
+    // 1. Hizmet süresini bul (Varsayılan 30 dk)
+    let duration = 30; 
 
-  // --- DEBUG LOG (VERİTABANI SONUCU) ---
-  if (serviceError) {
-    console.error("❌ DB HATASI (Service):", serviceError.message);
-    console.error("❌ DB HATASI (Kod):", serviceError.code);
-    console.error("❌ DB HATASI (Detay):", serviceError.details);
-  } else {
-    console.log("✅ Hizmet Bulundu:", service);
+    if (serviceId) {
+      const { data: serviceData } = await supabase
+        .from('services')
+        .select('duration_min') // Sütun adı veritabanınızda 'duration_min'
+        .eq('id', serviceId)
+        .single();
+      
+      if (serviceData?.duration_min) {
+        duration = serviceData.duration_min;
+      }
+    }
+
+    // 2. Akıllı Slot Motorunu Çalıştır (RPC)
+    const { data: slots, error } = await supabase
+      .rpc('get_available_slots', {
+        p_date: date,
+        p_staff_id: staffId,
+        p_service_duration: duration
+      });
+
+    if (error) {
+      console.error('RPC Hatası:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // 3. Veriyi düzenle ve gönder
+    // Gelen veri: [{ slot: "09:00" }, { slot: "09:30" }] -> Çıktı: ["09:00", "09:30"]
+    const formattedSlots = slots ? slots.map((s: any) => s.slot) : [];
+
+    return NextResponse.json(formattedSlots);
+
+  } catch (err: any) {
+    console.error('API Hatası:', err);
+    return NextResponse.json({ error: 'Sunucu hatası' }, { status: 500 });
   }
-  // -------------------------------------
-
-  if (serviceError || !service) {
-    // Hata detayını ekrana da basalım ki görelim
-    return NextResponse.json({ 
-      error: 'Seçilen hizmet bulunamadı.', 
-      details: serviceError ? serviceError.message : 'Veri null döndü' 
-    }, { status: 404 });
-  }
-
-  // RPC Çağrısı
-  const { data: slots, error: rpcError } = await supabase
-    .rpc('get_available_slots', {
-      p_date: date,
-      p_staff_id: staffId,
-      p_duration_min: service.duration_min
-    });
-
-  if (rpcError) {
-    console.error("❌ RPC HATASI:", rpcError);
-    return NextResponse.json({ error: 'RPC Hatası', details: rpcError.message }, { status: 500 });
-  }
-
-  return NextResponse.json(slots);
 }
