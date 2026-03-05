@@ -44,7 +44,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
 
   // Slot (Saat) Verileri
   // API artık ["09:00", "09:30"] gibi düz metin listesi dönüyor
-  const [slots, setSlots] = useState<string[]>([]);
+  const [slots, setSlots] = useState<any[]>([]); // Tip değişti
   const [loadingSlots, setLoadingSlots] = useState(false);
 
   // Müşteri Formu
@@ -247,16 +247,23 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ initialServices, i
             </div>
           ) : (
             <div className={styles.slotGrid}>
-              {/* API'den gelen ["14:00", "14:30"] listesini basıyoruz */}
-              {slots.map((slot) => (
-                <button
-                  key={slot}
-                  type="button"
-                  className={`${styles.slotButton} ${selectedTimeSlot === slot ? styles.selected : ''}`}
-                  onClick={() => setSelectedTimeSlot(slot)}
-                >
-                  {slot}
-                </button>
+  {slots.map((slot, index) => (
+    <button
+      key={index}
+      type="button"
+      // Eğer slot.is_available false ise "disabled" stili ekle
+      className={`${styles.slotButton} ${
+        !slot.is_available ? styles.disabled : ''
+      } ${selectedTimeSlot === slot.slot_time ? styles.selected : ''}`}
+      
+      // Tıklamayı engelle
+      disabled={!slot.is_available} 
+      
+      // Tıklanınca sadece saati seç
+      onClick={() => setSelectedTimeSlot(slot.slot_time)}
+    >
+      {slot.slot_time}
+    </button>
               ))}
             </div>
           )}

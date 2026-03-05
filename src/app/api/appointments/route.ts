@@ -1,13 +1,9 @@
-// src/app/api/appointments/route.ts
+import { createClient } from '@/server/db/supabase'; 
+import { NextResponse } from 'next/server';
 
-// ✅ DOĞRU IMPORT (Server Side)
-import { createClient } from '@/server/db/supabase';
-import { NextRequest, NextResponse } from 'next/server';
-
-export async function POST(request: NextRequest) {
-  // Sunucu taraflı client oluşturuluyor
+export async function POST(request: Request) {
   const supabase = await createClient();
-  
+
   try {
     const body = await request.json();
     const { serviceId, staffId, startAt, customer } = body;
@@ -17,7 +13,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Eksik bilgi.' }, { status: 400 });
     }
 
-    // 2. Hizmet Detaylarını Çek
+    // 2. Hizmet Bilgisini Çek
     const { data: service, error: serviceError } = await supabase
       .from('services')
       .select('duration_min, price_min')
@@ -25,17 +21,29 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (serviceError || !service) {
-      return NextResponse.json({ error: 'Hizmet bulunamadı.' }, { status: 400 });
+      return NextResponse.json({ error: 'Hizmet bulunamadı.' }, { status: 404 });
     }
 
-    // Bitiş saatini hesapla
-    const startDate = new Date(startAt);
-    const endDate = new Date(startDate.getTime() + service.duration_min * 60000); // dk -> ms
+    // --- SAAT DÜZELTME (TIMEZONE FIX) ---
+    // Gelen veri formatı: "2026-03-05T14:00:00" (Frontend saniyeyi zaten ekliyor)
+    // Bizim yapmamız gereken sadece +03:00 eklemek.
+    
+    let isoStringWithOffset;
+
+    if (startAt.includes('Z') || startAt.includes('+')) {
+       // Zaten timezone varsa dokunma
+       isoStringWithOffset = new Date(startAt).toISOString();
+    } else {
+       // Sadece timezone ekle (Saniye ekleme!)
+       // Örnek: "2026-03-05T14:00:00" + "+03:00"
+       isoStringWithOffset = new Date(`${startAt}+03:00`).toISOString();
+    }
+
+    const startDate = new Date(isoStringWithOffset);
+    const endDate = new Date(startDate.getTime() + service.duration_min * 60000);
 
     // 3. MÜŞTERİ YÖNETİMİ
     let customerId;
-    
-    // Telefon ile müşteri ara
     const { data: existingCustomer } = await supabase
       .from('customers')
       .select('id')
@@ -45,8 +53,7 @@ export async function POST(request: NextRequest) {
     if (existingCustomer) {
       customerId = existingCustomer.id;
     } else {
-      // Yoksa oluştur
-      const { data: newCustomer, error: createCustomerError } = await supabase
+      const { data: newCustomer, error: createError } = await supabase
         .from('customers')
         .insert({
           full_name: customer.fullName,
@@ -56,20 +63,18 @@ export async function POST(request: NextRequest) {
         .select()
         .single();
 
-      if (createCustomerError) {
-        return NextResponse.json({ error: 'Müşteri kaydı başarısız: ' + createCustomerError.message }, { status: 500 });
-      }
+      if (createError) throw new Error(createError.message);
       customerId = newCustomer.id;
     }
 
-    // 4. RANDEVU KAYDI (Direct Insert)
+    // 4. RANDEVUYU KAYDET
     const { data: appointment, error: appointmentError } = await supabase
       .from('appointments')
       .insert({
         customer_id: customerId,
         service_id: serviceId,
         staff_id: staffId,
-        start_at: startAt,
+        start_at: isoStringWithOffset, 
         end_at: endDate.toISOString(),
         price_at_booking: service.price_min,
         status: 'confirmed'
@@ -77,15 +82,12 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (appointmentError) {
-      console.error('Randevu Hatası:', appointmentError);
-      return NextResponse.json({ error: 'Randevu kaydedilemedi: ' + appointmentError.message }, { status: 500 });
-    }
+    if (appointmentError) throw new Error(appointmentError.message);
 
     return NextResponse.json({ success: true, id: appointment.id });
 
   } catch (err: any) {
-    console.error('Sunucu Hatası:', err);
-    return NextResponse.json({ error: 'Sunucu hatası: ' + err.message }, { status: 500 });
+    console.error('API Error:', err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

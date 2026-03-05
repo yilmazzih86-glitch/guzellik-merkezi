@@ -179,3 +179,16 @@
   cursor: not-allowed;
   background-color: var(--color-background);
 }
+/* BookingWizard.module.css */
+.disabled {
+  background-color: #e5e7eb; /* Gri */
+  color: #9ca3af; /* Soluk yazı */
+  cursor: not-allowed;
+  opacity: 0.6;
+  border: 1px solid #e5e7eb;
+}
+
+.disabled:hover {
+  background-color: #e5e7eb; /* Hover efektini kapat */
+  transform: none;
+}
