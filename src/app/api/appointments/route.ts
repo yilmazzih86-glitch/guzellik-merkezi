@@ -98,6 +98,20 @@ export async function POST(request: Request) {
     const webhookUrl = process.env.N8N_WEBHOOK_URL;
     
     if (webhookUrl) {
+      // İstanbul Saatini Hesapla
+      const trDate = startDate.toLocaleDateString('tr-TR', { 
+        timeZone: 'Europe/Istanbul', // 👈 KRİTİK NOKTA
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+      });
+
+      const trTime = startDate.toLocaleTimeString('tr-TR', { 
+        timeZone: 'Europe/Istanbul', // 👈 KRİTİK NOKTA
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+
       fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -110,8 +124,8 @@ export async function POST(request: Request) {
             phone: customer.phone
           },
           service: service.name,
-          date: startDate.toLocaleDateString('tr-TR'),
-          time: startDate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+          date: trDate, // Örn: 6 Mart 2026
+          time: trTime  // Örn: 14:30 (İstanbul saatiyle)
         })
       }).catch(err => console.error('n8n Webhook Error:', err));
     }
