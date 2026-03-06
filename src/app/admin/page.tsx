@@ -1,14 +1,13 @@
 // src/app/admin/page.tsx
 
 import React from 'react';
-import { createClient } from '@/server/db/supabase'; // Server-side client
+import { createClient } from '@/server/db/supabase';
 import { Card } from '@/components/ui/Card/Card';
 import layoutStyles from '@/styles/layout.module.css';
 import styles from './Dashboard.module.css';
-import AppointmentList from '@/components/admin/AppointmentList/AppointmentList'; // Yeni oluşturduğumuz bileşen
-import { AppointmentWithDetails } from '@/types/custom'; // Tip tanımımız
+import AppointmentList from '@/components/admin/AppointmentList/AppointmentList';
+import { AppointmentWithDetails } from '@/types/custom';
 
-// Para birimi formatlayıcı
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('tr-TR', {
     style: 'currency',
@@ -21,24 +20,29 @@ const formatCurrency = (amount: number) => {
 export default async function AdminDashboard() {
   const supabase = await createClient();
 
-  // 1. İstatistikleri Çekme Hazırlığı (RPC)
+  // --- TARİH FİLTRESİ: Sadece BUGÜN ---
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+
+  // 1. İstatistikler
   const statsPromise = supabase.rpc('get_dashboard_stats');
 
-  // 2. Randevuları Çekme Hazırlığı
-  // Bugünden itibaren olan randevuları getir, tarihe göre sırala.
-  // İlişkisel verileri (Müşteri ve Hizmet) de çekiyoruz.
+  // 2. Randevular (Sadece Bugün + CRM Verileri)
   const appointmentsPromise = supabase
     .from('appointments')
     .select(`
       *,
-      customers ( full_name, phone ),
-      services ( name, duration_min )
+      customers ( full_name, phone, visit_count, total_spend ),
+      services ( name, duration_min ), staff ( name )
     `)
-    .order('start_at', { ascending: true }) // En yakından uzağa
-    .limit(10); // Sadece ilk 10 kayıt
+    .gte('start_at', todayStart.toISOString()) // Bugünden büyük ve eşit
+    .lte('start_at', todayEnd.toISOString())   // Bugünden küçük ve eşit
+    .order('start_at', { ascending: true });   // Saate göre sırala
 
-  // 3. İki sorguyu "Paralel" (Aynı anda) çalıştır
-  // Bu sayede sayfa yüklenme hızı 2 kat artar.
+  // Paralel Sorgu
   const [statsResult, appointmentsResult] = await Promise.all([
     statsPromise, 
     appointmentsPromise
@@ -48,11 +52,9 @@ export default async function AdminDashboard() {
   const appointmentsData = appointmentsResult.data;
   const statsError = statsResult.error;
 
-  // Veri Tipi Dönüşümü (Supabase'den gelen veriyi bizim tipimize uydurma)
-  // Not: Gerçek projede bunu Zod ile doğrulamak daha güvenlidir ama şimdilik "as" kullanıyoruz.
+  // Tip Dönüşümü
   const appointments = (appointmentsData || []) as unknown as AppointmentWithDetails[];
 
-  // Güvenli istatistik verisi (Null gelirse 0 yaz)
   const safeStats = {
     today: stats?.today_appointments ?? 0,
     revenue: stats?.monthly_revenue ?? 0,
@@ -63,78 +65,61 @@ export default async function AdminDashboard() {
     <div className={layoutStyles.container}>
       <div className={layoutStyles.stackLg} style={{ marginTop: '2rem' }}>
         
-        {/* --- HEADER --- */}
+        {/* HEADER */}
         <header className={styles.header}>
           <div>
-            <h1 className={styles.title}>Yönetim Paneli</h1>
-            <p className={styles.subtitle}>İşletme genel bakış</p>
+            <h1 className={styles.title}>Günlük Akış</h1>
+            <p className={styles.subtitle}>Bugünkü operasyon ve randevular</p>
           </div>
-          <span className={styles.date}>
+          <div className={styles.dateBadge}>
             {new Date().toLocaleDateString('tr-TR', { 
               day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' 
             })}
-          </span>
+          </div>
         </header>
 
-        {/* --- HATA VARSA GÖSTER --- */}
         {statsError && (
           <div style={{ color: 'red', padding: '1rem', background: '#fee2e2', borderRadius: '8px' }}>
             Veri hatası: {statsError.message}
           </div>
         )}
 
-        {/* --- İSTATİSTİK KARTLARI --- */}
+        {/* İSTATİSTİKLER (KPI) */}
         <div className={layoutStyles.grid}>
-          
-          {/* Kart 1: Bugün */}
           <Card className={styles.statCard}>
             <div className={styles.cardHeader}>
-              <span className={styles.statLabel}>BUGÜNKÜ RANDEVULAR</span>
+              <span className={styles.statLabel}>RANDEVU ADEDİ</span>
               <span className={styles.icon}>📅</span>
             </div>
             <span className={styles.statValue}>{safeStats.today}</span>
-            <div className={styles.statTrend}>
-              <span>Günlük operasyon</span>
-            </div>
           </Card>
 
-          {/* Kart 2: Ciro */}
           <Card className={styles.statCard}>
             <div className={styles.cardHeader}>
-              <span className={styles.statLabel}>BU AY CİRO (TAHMİNİ)</span>
+              <span className={styles.statLabel}>AYLIK CİRO</span>
               <span className={styles.icon}>💰</span>
             </div>
             <span className={styles.statValue}>
               {formatCurrency(safeStats.revenue)}
             </span>
-            <div className={styles.statTrend} style={{ color: '#10b981' }}>
-              <span>▲ Hedeflenen gelir</span>
-            </div>
           </Card>
 
-          {/* Kart 3: Müşteri */}
           <Card className={styles.statCard}>
             <div className={styles.cardHeader}>
-              <span className={styles.statLabel}>TOPLAM MÜŞTERİ</span>
+              <span className={styles.statLabel}>MÜŞTERİ HAVUZU</span>
               <span className={styles.icon}>👥</span>
             </div>
             <span className={styles.statValue}>{safeStats.customers}</span>
-            <div className={styles.statTrend}>
-              <span>Kayıtlı kişi</span>
-            </div>
           </Card>
-
         </div>
 
-        {/* --- YENİ EKLENEN BÖLÜM: RANDEVU LİSTESİ --- */}
+        {/* RANDEVU LİSTESİ */}
         <div style={{ marginTop: '1rem' }}>
             <h2 className={styles.title} style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>
-                Yaklaşan Randevular
+                Bugünün Randevuları
             </h2>
-            
-            {/* Tabloyu Card içine alarak çerçeveli görünüm sağlıyoruz */}
-            <Card style={{ padding: 0, overflow: 'hidden' }}>
-                <AppointmentList appointments={appointments} />
+            <Card style={{ padding: 0, overflow: 'hidden', border: 'none', boxShadow: 'var(--shadow-md)' }}>
+                <AppointmentList appointments={appointments} viewMode="dashboard"/>
             </Card>
         </div>
 
