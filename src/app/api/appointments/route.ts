@@ -112,7 +112,7 @@ export async function POST(request: Request) {
         minute: '2-digit' 
       });
 
-      fetch(webhookUrl, {
+      await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
