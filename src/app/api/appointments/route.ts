@@ -1,5 +1,4 @@
 // src/app/api/appointments/route.ts
-
 import { createClient } from '@/server/db/supabase'; 
 import { NextResponse } from 'next/server';
 
@@ -18,7 +17,7 @@ export async function POST(request: Request) {
     // 2. Hizmet Bilgisini Çek
     const { data: service, error: serviceError } = await supabase
       .from('services')
-      .select('name, duration_min, price_min') // name eklendi (Mailde kullanmak için)
+      .select('name, duration_min, price_min')
       .eq('id', serviceId)
       .single();
 
@@ -76,7 +75,7 @@ export async function POST(request: Request) {
       customerId = newCustomer.id;
     }
 
-    // 5. RANDEVUYU KAYDET (PENDING)
+    // 5. RANDEVUYU KAYDET
     const { data: appointment, error: appointmentError } = await supabase
       .from('appointments')
       .insert({
@@ -93,41 +92,56 @@ export async function POST(request: Request) {
 
     if (appointmentError) throw new Error(appointmentError.message);
 
-    // 6. n8n WEBHOOK TETİKLEME (YENİ EKLENEN KISIM) 🚀
-    // İşlem başarılı, arka planda n8n'e haber verelim (Await etmiyoruz, kullanıcıyı bekletmeyelim)
+    // --- YENİ EKLENEN KISIM: HATIRLATICI PLANLAMA ---
+    // Randevu saatinden 24 saat önce ve 2 saat önce için reminder ekle
+    const remindersToInsert = [];
+    const now = new Date();
+
+    // 1. Hatırlatma: 24 Saat Önce
+    const time24hBefore = new Date(startDate.getTime() - 24 * 60 * 60 * 1000);
+    if (time24hBefore > now) {
+      remindersToInsert.push({
+        appointment_id: appointment.id,
+        type: 'email_24h', // Tip ayrımı yaptık
+        scheduled_for: time24hBefore.toISOString()
+      });
+    }
+
+    // 2. Hatırlatma: 2 Saat Önce
+    const time2hBefore = new Date(startDate.getTime() - 2 * 60 * 60 * 1000);
+    if (time2hBefore > now) {
+      remindersToInsert.push({
+        appointment_id: appointment.id,
+        type: 'email_2h', // Tip ayrımı yaptık
+        scheduled_for: time2hBefore.toISOString()
+      });
+    }
+
+    if (remindersToInsert.length > 0) {
+      await supabase.from('reminders').insert(remindersToInsert);
+    }
+    // -----------------------------------------------------
+
+    // 6. n8n WEBHOOK TETİKLEME (YENİ RANDEVU BİLDİRİMİ)
     const webhookUrl = process.env.N8N_WEBHOOK_URL;
     
     if (webhookUrl) {
-      // İstanbul Saatini Hesapla
-      const trDate = startDate.toLocaleDateString('tr-TR', { 
-        timeZone: 'Europe/Istanbul', // 👈 KRİTİK NOKTA
-        day: 'numeric', 
-        month: 'long', 
-        year: 'numeric' 
-      });
+      const trDate = startDate.toLocaleDateString('tr-TR', { timeZone: 'Europe/Istanbul', day: 'numeric', month: 'long', year: 'numeric' });
+      const trTime = startDate.toLocaleTimeString('tr-TR', { timeZone: 'Europe/Istanbul', hour: '2-digit', minute: '2-digit' });
 
-      const trTime = startDate.toLocaleTimeString('tr-TR', { 
-        timeZone: 'Europe/Istanbul', // 👈 KRİTİK NOKTA
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-
-      await fetch(webhookUrl, {
+      // Fire-and-forget
+      fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'NEW_APPOINTMENT',
           appointmentId: appointment.id,
-          customer: {
-            name: customer.fullName,
-            email: customer.email,
-            phone: customer.phone
-          },
+          customer: { name: customer.fullName, email: customer.email, phone: customer.phone },
           service: service.name,
-          date: trDate, // Örn: 6 Mart 2026
-          time: trTime  // Örn: 14:30 (İstanbul saatiyle)
+          date: trDate,
+          time: trTime
         })
-      }).catch(err => console.error('n8n Webhook Error:', err));
+      }).catch(err => console.error('Webhook Error:', err));
     }
 
     return NextResponse.json({ success: true, id: appointment.id });

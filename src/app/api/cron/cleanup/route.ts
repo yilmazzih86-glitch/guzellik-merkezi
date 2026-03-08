@@ -1,35 +1,42 @@
 // src/app/api/cron/cleanup/route.ts
-
-import { getAdminClient } from '@/server/db/supabase'; // Admin yetkisi lazım!
+import { createClient } from '@/server/db/supabase'; 
 import { NextResponse } from 'next/server';
 
-// Bu endpoint'i dışarıdan herkes çağırmasın diye basit bir güvenlik önlemi alabiliriz.
-// URL şöyle olacak: /api/cron/cleanup?key=GIZLI_SIFRE
-const CRON_KEY = process.env.CRON_SECRET_KEY; 
-
 export async function GET(request: Request) {
+  // --- GÜVENLİK KONTROLÜ (CRON_CLEANUP ile) ---
+  const authHeader = request.headers.get('authorization');
+  const cronSecret = process.env.CRON_CLEANUP; // ÖZEL ANAHTAR
+
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: 'Yetkisiz erişim.' }, { status: 401 });
+  }
+  // ----------------------------------------------
+
+  const supabase = await createClient();
+
   try {
-    // 1. Güvenlik Kontrolü
-    const { searchParams } = new URL(request.url);
-    const key = searchParams.get('key');
+    // 15 Dakika Öncesini Hesapla
+    // Onay maili 15 dk geçerli olduğu için, bundan eski ve onaylanmamışları siliyoruz.
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
 
-    if (key !== CRON_KEY) {
-      return NextResponse.json({ error: 'Yetkisiz erişim.' }, { status: 401 });
-    }
+    // 'pending' statüsünde olan ve oluşturulma zamanı 15 dk'dan eski kayıtları sil
+    const { data, error } = await supabase
+      .from('appointments')
+      .delete()
+      .eq('status', 'pending')
+      .lt('created_at', fifteenMinutesAgo)
+      .select();
 
-    // 2. Admin Client ile SQL Fonksiyonunu Çağır
-    const supabase = getAdminClient();
-    
-    const { error } = await supabase.rpc('cleanup_expired_appointments');
+    if (error) throw error;
 
-    if (error) {
-      console.error('Cleanup Error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true, message: 'Temizlik tamamlandı.' });
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Süresi dolan randevular temizlendi.',
+      deletedCount: data.length 
+    });
 
   } catch (err: any) {
+    console.error('Cleanup Error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
