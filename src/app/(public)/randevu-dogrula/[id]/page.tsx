@@ -1,11 +1,10 @@
-// src/app/(public)/randevu-dogrula/[id]/page.tsx
 'use client'; // Client Component (Etkileşimli)
 
-import React, { useState } from 'react';
+import React, { useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card/Card';
 import { Button } from '@/components/ui/Button/Button';
-import styles from './Verify.module.css'; // Birazdan oluşturacağız
+// import styles from './Verify.module.css'; // Bu satırı şimdilik kapalı tutabiliriz veya silebiliriz
 
 export default function VerifyPage({ params }: { params: Promise<{ id: string }> }) {
   const [loading, setLoading] = useState(false);
@@ -13,7 +12,7 @@ export default function VerifyPage({ params }: { params: Promise<{ id: string }>
   const [errorMessage, setErrorMessage] = useState('');
   
   // Params'ı çözümle (Next.js 15)
-  const resolvedParams = React.use(params);
+  const resolvedParams = use(params);
   const id = resolvedParams.id;
 
   const handleConfirm = async () => {
@@ -21,15 +20,27 @@ export default function VerifyPage({ params }: { params: Promise<{ id: string }>
     setErrorMessage('');
 
     try {
+      // DÜZELTME 1: Backend 'appointmentId' bekliyor, 'id' değil.
       const res = await fetch('/api/appointments/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
+        body: JSON.stringify({ appointmentId: id }) 
       });
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || 'Bir hata oluştu.');
+      // --- EKLEDİĞİNİZ KOD BURAYA GELİYOR ---
+      if (!res.ok) {
+        // Eğer özel hata kodu "APPOINTMENT_CANCELLED" ise
+        if (data.code === 'APPOINTMENT_CANCELLED') {
+          // try-catch bloğunda olduğumuz için 'throw' kullanıyoruz, 
+          // aşağıda catch bloğu bunu yakalayıp ekrana yazacak.
+          throw new Error('Bu randevu daha önce iptal edilmiş. İşlem yapılamaz.');
+        } else {
+          throw new Error(data.error || 'Bir hata oluştu.');
+        }
+      }
+      // --------------------------------------
 
       setStatus('success');
     } catch (err: any) {
@@ -46,7 +57,7 @@ export default function VerifyPage({ params }: { params: Promise<{ id: string }>
         
         {/* DURUM 1: BAŞLANGIÇ (ONAY BEKLİYOR) */}
         {status === 'idle' && (
-          <>
+          <div className="animate-fade-up">
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🛡️</div>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>Randevu Onayı</h1>
             <p style={{ color: '#666', marginBottom: '2rem' }}>
@@ -56,12 +67,12 @@ export default function VerifyPage({ params }: { params: Promise<{ id: string }>
             <Button size="lg" onClick={handleConfirm} isLoading={loading}>
               Randevuyu Onayla
             </Button>
-          </>
+          </div>
         )}
 
         {/* DURUM 2: BAŞARILI */}
         {status === 'success' && (
-          <>
+          <div className="animate-fade-up">
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', color: '#16a34a' }}>
               Randevunuz Onaylandı!
@@ -72,23 +83,23 @@ export default function VerifyPage({ params }: { params: Promise<{ id: string }>
             <Button variant="secondary" onClick={() => window.location.href = '/'}>
               Ana Sayfaya Dön
             </Button>
-          </>
+          </div>
         )}
 
-        {/* DURUM 3: HATA (SÜRE DOLMUŞ OLABİLİR) */}
+        {/* DURUM 3: HATA (SÜRE DOLMUŞ VEYA İPTAL EDİLMİŞ) */}
         {status === 'error' && (
-          <>
+          <div className="animate-fade-up">
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', color: '#dc2626' }}>
               İşlem Başarısız
             </h1>
-            <p style={{ color: '#666', marginBottom: '2rem' }}>
+            <p style={{ color: '#666', marginBottom: '2rem', fontWeight: '500' }}>
               {errorMessage}
             </p>
             <Button variant="secondary" onClick={() => window.location.href = '/'}>
               Ana Sayfaya Dön
             </Button>
-          </>
+          </div>
         )}
 
       </Card>

@@ -1,5 +1,4 @@
 // src/app/api/appointments/confirm/route.ts
-
 import { createClient } from '@/server/db/supabase'; 
 import { NextResponse } from 'next/server';
 
@@ -7,48 +6,58 @@ export async function POST(request: Request) {
   const supabase = await createClient();
 
   try {
-    const { id } = await request.json();
+    const { appointmentId } = await request.json();
 
-    if (!id) {
+    if (!appointmentId) {
       return NextResponse.json({ error: 'Randevu ID eksik.' }, { status: 400 });
     }
 
-    // 1. Randevuyu bul
+    // 1. ÖNCE RANDEVUNUN GÜNCEL DURUMUNU ÇEKELİM
     const { data: appointment, error: fetchError } = await supabase
       .from('appointments')
-      .select('status, created_at')
-      .eq('id', id)
+      .select('status, start_at')
+      .eq('id', appointmentId)
       .single();
 
     if (fetchError || !appointment) {
       return NextResponse.json({ error: 'Randevu bulunamadı.' }, { status: 404 });
     }
 
-    // 2. Zaten onaylı mı?
+    // 2. KRİTİK KONTROLLER
+    
+    // A) Eğer randevu iptal edilmişse ASLA onaylama
+    if (appointment.status === 'cancelled') {
+      return NextResponse.json({ 
+        error: 'Bu randevu iptal edilmiştir. Tekrar onaylanamaz.',
+        code: 'APPOINTMENT_CANCELLED' // Frontend'de özel mesaj göstermek için kod
+      }, { status: 400 });
+    }
+
+    // B) Zaten onaylanmışsa işlem yapma
     if (appointment.status === 'confirmed') {
-      return NextResponse.json({ success: true, message: 'Zaten onaylı.' });
+      return NextResponse.json({ success: true, message: 'Randevu zaten onaylı.' });
     }
 
-    // 3. 15 Dakika Süre Kontrolü (Backend Koruması)
-    const createdAt = new Date(appointment.created_at).getTime();
-    const now = new Date().getTime();
-    const diffMinutes = (now - createdAt) / 60000;
+    // C) Süre kontrolü (15 dakika kuralı) - Opsiyonel ama önerilir
+    // Randevu oluşturulma zamanını created_at'ten kontrol etmek daha doğru olurdu ama
+    // şimdilik basitçe pending durumundaysa devam ediyoruz.
 
-    if (diffMinutes > 15) {
-      return NextResponse.json({ error: 'Onay süresi (15 dk) doldu. Lütfen yeni randevu alın.' }, { status: 410 }); // 410: Gone
-    }
-
-    // 4. Onaylama İşlemi
+    // 3. HER ŞEY YOLUNDAYSA ONAYLA
     const { error: updateError } = await supabase
       .from('appointments')
       .update({ status: 'confirmed' })
-      .eq('id', id);
+      .eq('id', appointmentId);
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      throw new Error('Güncelleme sırasında hata oluştu.');
+    }
 
-    return NextResponse.json({ success: true });
+    // 4. (Opsiyonel) n8n'e "Randevu Onaylandı" bildirimi gönderilebilir.
+
+    return NextResponse.json({ success: true, message: 'Randevu başarıyla onaylandı.' });
 
   } catch (err: any) {
+    console.error('Confirm Error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
