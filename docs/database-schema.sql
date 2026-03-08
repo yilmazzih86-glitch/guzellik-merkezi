@@ -8,7 +8,7 @@ CREATE TABLE public.appointments (
   staff_id uuid,
   start_at timestamp with time zone NOT NULL,
   end_at timestamp with time zone NOT NULL,
-  status text NOT NULL DEFAULT 'confirmed'::text CHECK (status = ANY (ARRAY['confirmed'::text, 'cancelled'::text, 'no_show'::text, 'completed'::text])),
+  status text NOT NULL DEFAULT 'confirmed'::text CHECK (status = ANY (ARRAY['pending'::text, 'confirmed'::text, 'cancelled'::text, 'no_show'::text, 'completed'::text])),
   source text NOT NULL DEFAULT 'web'::text,
   created_at timestamp with time zone DEFAULT now(),
   price_at_booking numeric,
@@ -31,6 +31,9 @@ CREATE TABLE public.customers (
   email text,
   notes text,
   created_at timestamp with time zone DEFAULT now(),
+  total_spend numeric DEFAULT 0,
+  visit_count integer DEFAULT 0,
+  last_visit_at timestamp with time zone,
   CONSTRAINT customers_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.reminders (
