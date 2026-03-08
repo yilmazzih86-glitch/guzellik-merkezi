@@ -3,11 +3,12 @@ import { createClient } from '@/server/db/supabase';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
-  // 1. GÜVENLİK KONTROLÜ (Bearer Token & CRON_CLEANUP)
+  // 1. GÜVENLİK KONTROLÜ
+  // n8n'den gelen "Authorization: Bearer <ŞİFRE>" başlığını kontrol et
   const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_CLEANUP; // Sizin belirlediğiniz değişken
+  const cronSecret = process.env.CRON_CLEANUP; 
 
-  // Eğer şifre eşleşmezse 401 hatası ver
+  // Şifreler eşleşmiyorsa kapıyı açma
   if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Yetkisiz erişim.' }, { status: 401 });
   }
@@ -16,10 +17,10 @@ export async function GET(request: Request) {
 
   try {
     // 2. TEMİZLİK İŞLEMİ
-    // 15 dakika öncesini hesapla
+    // Şu andan 15 dakika öncesini hesapla
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
 
-    // 'pending' statüsünde olan ve süresi dolmuş kayıtları sil
+    // 'pending' (onaylanmamış) ve süresi dolmuş randevuları sil
     const { data, error } = await supabase
       .from('appointments')
       .delete()

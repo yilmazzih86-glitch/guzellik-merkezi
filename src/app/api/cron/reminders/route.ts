@@ -3,9 +3,10 @@ import { createClient } from '@/server/db/supabase';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
-  // 1. GÜVENLİK KONTROLÜ (Bearer Token & CRON_REMINDERS)
+  // 1. GÜVENLİK KONTROLÜ
+  // n8n'den gelen başlığı ve 'CRON_REMINDERS' şifresini kontrol et
   const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_REMINDERS; // Sizin belirlediğiniz değişken
+  const cronSecret = process.env.CRON_REMINDERS; 
 
   if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Yetkisiz erişim.' }, { status: 401 });
@@ -45,15 +46,16 @@ export async function GET(request: Request) {
     for (const reminder of dueReminders) {
       const appt: any = reminder.appointments;
       
-      // İptal edilmiş randevuları atla
+      // İptal edilmiş/gelmemiş randevuları atla
       if (appt.status === 'cancelled' || appt.status === 'no_show') {
          await supabase.from('reminders').update({ 
              sent_at: new Date().toISOString(), 
-             last_error: 'Randevu iptal/no-show olduğu için gönderilmedi.' 
+             last_error: 'Randevu iptal olduğu için gönderilmedi.' 
          }).eq('id', reminder.id);
          continue;
       }
 
+      // Veri yapısını düzelt (Array kontrolü)
       const customer = Array.isArray(appt.customers) ? appt.customers[0] : appt.customers;
       const service = Array.isArray(appt.services) ? appt.services[0] : appt.services;
 
@@ -76,12 +78,12 @@ export async function GET(request: Request) {
              })
            });
 
-           // Başarılı
+           // Başarılı -> Güncelle
            await supabase.from('reminders').update({ sent_at: new Date().toISOString() }).eq('id', reminder.id);
            results.push({ id: reminder.id, status: 'sent' });
 
         } catch (webhookErr: any) {
-           // Hata
+           // Hata -> Tekrar dene
            await supabase.from('reminders').update({ 
                attempts: (reminder as any).attempts + 1,
                last_error: webhookErr.message
