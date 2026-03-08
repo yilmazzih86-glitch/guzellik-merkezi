@@ -3,23 +3,23 @@ import { createClient } from '@/server/db/supabase';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
-  // --- GÜVENLİK KONTROLÜ (CRON_CLEANUP ile) ---
+  // 1. GÜVENLİK KONTROLÜ (Bearer Token & CRON_CLEANUP)
   const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_CLEANUP; // ÖZEL ANAHTAR
+  const cronSecret = process.env.CRON_CLEANUP; // Sizin belirlediğiniz değişken
 
+  // Eğer şifre eşleşmezse 401 hatası ver
   if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Yetkisiz erişim.' }, { status: 401 });
   }
-  // ----------------------------------------------
 
   const supabase = await createClient();
 
   try {
-    // 15 Dakika Öncesini Hesapla
-    // Onay maili 15 dk geçerli olduğu için, bundan eski ve onaylanmamışları siliyoruz.
+    // 2. TEMİZLİK İŞLEMİ
+    // 15 dakika öncesini hesapla
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
 
-    // 'pending' statüsünde olan ve oluşturulma zamanı 15 dk'dan eski kayıtları sil
+    // 'pending' statüsünde olan ve süresi dolmuş kayıtları sil
     const { data, error } = await supabase
       .from('appointments')
       .delete()
