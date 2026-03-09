@@ -30,7 +30,7 @@ export default function AppointmentList({ appointments, viewMode }: Props) {
     setLoadingId(id);
     try {
       const res = await fetch('/api/appointments/update-status', {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, status: newStatus }),
       });
