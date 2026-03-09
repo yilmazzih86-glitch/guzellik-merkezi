@@ -4,12 +4,13 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: var(--color-white, #fff);
+  background-color: #fff;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #e5e7eb;
 }
 
+/* --- HEADER --- */
 .header {
   display: flex;
   justify-content: space-between;
@@ -22,7 +23,7 @@
 
 .title {
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #111827;
 }
 
@@ -33,50 +34,59 @@
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.85rem;
+  transition: background 0.2s;
+  color: #374151;
 }
 
-/* --- GRID MAIN --- */
+.navButton:hover {
+  background-color: #e5e7eb;
+}
+
+/* --- GRID MAIN (DÜZELTİLDİ) --- */
 .gridContainer {
   display: grid;
-  /* Sol sütun 60px, diğer 7 sütun eşit pay */
+  /* 1. Sütun: 60px (Saatler)
+     2-8. Sütunlar: Eşit genişlik (Günler)
+  */
   grid-template-columns: 60px repeat(7, 1fr);
   
-  /* Satırlar: Her 30dk için 40px sabit yükseklik */
+  /* Satırlar: Her dilim (30dk) için sabit 40px yükseklik */
   grid-auto-rows: 40px; 
   
   overflow-y: auto;
   flex: 1;
   position: relative;
-  /* Scrollbar estetiği */
-  scrollbar-width: thin;
+  scroll-behavior: smooth;
 }
 
 /* SAAT DİLİMİ (Time Slot) */
 .timeSlot {
-  /* Artık grid hücresi olduğu için hizalama kolay */
+  /* Izgaranın 1. sütununa yerleşir */
   text-align: right;
   padding-right: 8px;
   font-size: 0.75rem;
   color: #9ca3af;
   position: relative;
-  top: -8px; /* Yazıyı çizginin üstüne ortala */
-  pointer-events: none; /* Tıklamayı engelle */
+  top: -8px; /* Saati çizginin tam ortasına hizala */
+  pointer-events: none;
 }
 
-/* GÜN BAŞLIKLARI */
+/* GÜN BAŞLIKLARI (Sticky Header) */
 .dayHeader {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 8px;
   border-bottom: 1px solid #e5e7eb;
   border-right: 1px solid #f3f4f6;
   background-color: #fff;
+  
+  /* Sticky özelliği ile aşağı kaydırırken üstte sabit kalır */
   position: sticky;
   top: 0;
-  z-index: 20; /* Randevuların üstünde kalsın */
-  height: 60px; /* Header yüksekliği */
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  z-index: 30; 
+  height: 60px; 
 }
 
 .dayName {
@@ -93,29 +103,29 @@
 
 .today {
   background-color: #eff6ff;
-  color: #2563eb;
 }
 .today .dayName, .today .dayDate {
   color: #2563eb;
 }
 
-/* IZGARA ÇİZGİLERİ (Bölerek daha temiz görüntü elde ettik) */
+/* IZGARA ÇİZGİLERİ */
 .gridColumnLine {
   border-right: 1px solid #f3f4f6;
   pointer-events: none;
+  grid-row-start: 2; /* Header'ın altından başla */
 }
 
 .gridRowLine {
-  border-bottom: 1px solid #f9fafb; /* Çok hafif yatay çizgiler */
+  border-bottom: 1px solid #f9fafb;
   pointer-events: none;
 }
 
 /* RANDEVU KARTI */
 .eventCard {
-  margin: 1px 4px; /* Hafif boşluk */
-  padding: 4px;
+  margin: 1px 4px;
+  padding: 4px 6px;
   border-radius: 4px;
-  border-left-width: 3px;
+  border-left-width: 4px;
   border-left-style: solid;
   cursor: pointer;
   overflow: hidden;
@@ -124,12 +134,14 @@
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   display: flex;
   flex-direction: column;
+  transition: transform 0.1s, box-shadow 0.1s;
+  background-color: rgba(255,255,255,0.9);
 }
 
 .eventCard:hover {
-  z-index: 15;
+  z-index: 20;
   transform: scale(1.02);
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 .eventTitle {
@@ -137,19 +149,24 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-bottom: 2px;
 }
+
 .eventService {
-  opacity: 0.9;
+  font-size: 0.7rem;
   white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
+
 .eventTime {
   font-size: 0.65rem;
   margin-top: auto;
-  opacity: 0.7;
+  opacity: 0.8;
+  font-weight: 500;
 }
 
-/* RENKLER */
+/* STATÜ RENKLERİ */
 .statusConfirmed { background-color: #dcfce7; border-left-color: #16a34a; color: #14532d; }
 .statusPending { background-color: #fef9c3; border-left-color: #ca8a04; color: #713f12; }
 .statusCancelled { background-color: #fee2e2; border-left-color: #dc2626; color: #7f1d1d; }
@@ -160,12 +177,14 @@
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0,0,0,0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
+  backdrop-filter: blur(2px);
 }
+
 .modalContent {
   background: white;
   width: 90%;
@@ -173,32 +192,50 @@
   border-radius: 12px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  animation: slideUp 0.2s ease-out;
 }
+
+@keyframes slideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 .modalTitle {
   margin: 0;
   padding: 1rem;
   background: #f9fafb;
   border-bottom: 1px solid #e5e7eb;
+  font-size: 1.1rem;
+  color: #111827;
 }
+
 .modalBody { padding: 1.5rem; }
-.modalBody p { margin: 0.5rem 0; color: #374151; }
+.modalBody p { margin: 0.5rem 0; color: #4b5563; font-size: 0.95rem; }
+.modalBody strong { color: #111827; width: 80px; display: inline-block; }
+
 .modalFooter {
   padding: 1rem;
   background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
   text-align: right;
 }
+
 .closeButton {
   background: white;
   border: 1px solid #d1d5db;
   padding: 0.5rem 1rem;
   border-radius: 6px;
   cursor: pointer;
+  color: #374151;
+  font-weight: 500;
 }
+.closeButton:hover { background: #f3f4f6; }
+
 .badgeWrapper { margin-top: 1rem; }
 .statusBadge {
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: 4px 10px;
+  border-radius: 99px;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
 }

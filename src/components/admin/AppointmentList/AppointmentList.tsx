@@ -16,9 +16,8 @@ export default function AppointmentList({ appointments, viewMode }: Props) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
-  // --- STATÜ GÜNCELLEME VE ONAY MEKANİZMASI ---
+  // --- STATÜ GÜNCELLEME ---
   const handleStatusUpdate = async (id: string, newStatus: string) => {
-    // KULLANICIYA SORALIM (Güvenlik Önlemi)
     const messages: Record<string, string> = {
       completed: 'Bu randevuyu TAMAMLANDI (Geldi) olarak işaretlemek istediğinize emin misiniz?',
       no_show: 'Bu müşteriyi GELMEDİ olarak işaretlemek istediğinize emin misiniz?',
@@ -37,7 +36,7 @@ export default function AppointmentList({ appointments, viewMode }: Props) {
 
       if (!res.ok) throw new Error('Hata oluştu');
       
-      router.refresh(); // Listeyi yenile ki kartın durumu güncellensin
+      router.refresh(); 
     } catch (error) {
       alert('İşlem başarısız oldu.');
     } finally {
@@ -49,21 +48,21 @@ export default function AppointmentList({ appointments, viewMode }: Props) {
   const formatTime = (date: string) => new Date(date).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
   const formatDate = (date: string) => new Date(date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
 
+  // Veri yoksa veya boşsa
   if (!appointments || appointments.length === 0) {
-    return <div className={styles.emptyState}>Kayıt bulunamadı.</div>;
+    return <div className={styles.emptyState}>Gösterilecek randevu bulunamadı.</div>;
   }
 
   return (
     <div className={styles.container}>
       {appointments.map((app) => {
-        // İşlem yapılabilir mi? (Sadece Bekleyen ve Onaylılar için butonlar açık olsun)
         const isActionable = ['pending', 'confirmed'].includes(app.status);
         const isLoading = loadingId === app.id;
 
         return (
           <div key={app.id} className={styles.card}>
             
-            {/* SOL: ZAMAN KUTUSU */}
+            {/* SOL: ZAMAN */}
             <div className={styles.timeBlock}>
               <div className={styles.time}>{formatTime(app.start_at)}</div>
               <div className={styles.date}>{formatDate(app.start_at)}</div>
@@ -75,7 +74,6 @@ export default function AppointmentList({ appointments, viewMode }: Props) {
                 <Link href={`/admin/customers/${app.customer_id}`} className={styles.customerName}>
                   {app.customers?.full_name || 'Misafir'}
                 </Link>
-                {/* Statü Rozeti */}
                 <span className={`${styles.statusBadge} ${styles[app.status]}`}>
                   {app.status === 'confirmed' ? '• ONAYLI' : 
                    app.status === 'pending' ? '• BEKLİYOR' : 
@@ -86,51 +84,43 @@ export default function AppointmentList({ appointments, viewMode }: Props) {
               </div>
               
               <div className={styles.subInfo}>
-                <span>👤 {app.services?.name} ({app.services?.duration_min} dk)</span>
+                <span>👤 {app.services?.name}</span>
                 <span className={styles.phone}>📞 {app.customers?.phone}</span>
                 {app.staff?.name && <span className={styles.staff}>👨‍⚕️ {app.staff.name}</span>}
               </div>
             </div>
 
-            {/* SAĞ: BUTONLAR (AKSİYON ALANI) */}
+            {/* SAĞ: BUTONLAR */}
             <div className={styles.actionsBlock}>
               {isActionable ? (
                 <div className={styles.buttonsWrapper}>
-                  {/* ✅ TAMAMLANDI BUTONU */}
                   <button 
                     onClick={() => handleStatusUpdate(app.id, 'completed')}
                     disabled={isLoading}
                     className={`${styles.circleBtn} ${styles.btnSuccess}`}
-                    title="Müşteri Geldi (Tamamla)"
+                    title="Geldi"
                   >
                     ✓
                   </button>
-
-                  {/* ❗ GELMEDİ BUTONU */}
                   <button 
                     onClick={() => handleStatusUpdate(app.id, 'no_show')}
                     disabled={isLoading}
                     className={`${styles.circleBtn} ${styles.btnWarning}`}
-                    title="Müşteri Gelmedi"
+                    title="Gelmedi"
                   >
                     !
                   </button>
-
-                  {/* ❌ İPTAL BUTONU */}
                   <button 
                     onClick={() => handleStatusUpdate(app.id, 'cancelled')}
                     disabled={isLoading}
                     className={`${styles.circleBtn} ${styles.btnDanger}`}
-                    title="Randevuyu İptal Et"
+                    title="İptal"
                   >
                     ✕
                   </button>
                 </div>
               ) : (
-                /* İŞLEM KAPALI (KİLİT SİMGESİ) */
-                <div className={styles.lockedState}>
-                  🔒 <span style={{ marginLeft: '6px' }}>İşlem Kapalı</span>
-                </div>
+                <div className={styles.lockedState}>🔒 İşlem Kapalı</div>
               )}
             </div>
 

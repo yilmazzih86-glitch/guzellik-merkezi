@@ -3,20 +3,22 @@
 .pageContainer {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 2rem); /* Sayfa boşluğu için */
+  height: calc(100vh - 2rem);
   gap: 1rem;
   padding: 1rem;
   box-sizing: border-box;
+  background-color: #f9fafb;
 }
 
+/* HEADER */
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: var(--color-white, #fff);
-  padding: 1rem;
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  background-color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   border: 1px solid #e5e7eb;
 }
 
@@ -26,9 +28,9 @@
 }
 
 .pageTitle {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  color: #1f2937;
+  color: #111827;
   margin: 0;
 }
 
@@ -40,62 +42,120 @@
 
 .actionGroup {
   display: flex;
-  gap: 0.75rem;
+  align-items: center;
+  gap: 1rem;
 }
 
+/* TOGGLE BUTTONS (Takvim / Liste Geçişi) */
+.toggleGroup {
+  display: flex;
+  background-color: #f3f4f6;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.toggleButton {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toggleButton:hover {
+  color: #374151;
+  background-color: rgba(0,0,0,0.02);
+}
+
+.toggleButton.active {
+  background-color: white;
+  color: #7c3aed; /* Ana Tema Rengi (Mor) */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  font-weight: 600;
+}
+
+/* REFRESH BUTTON */
 .refreshButton {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background-color: #f3f4f6;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: white;
   color: #4b5563;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  font-size: 0.875rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
 }
-
 .refreshButton:hover {
-  background-color: #e5e7eb;
+  border-color: #d1d5db;
+  background-color: #f9fafb;
+  color: #111827;
 }
 
+/* YENİ RANDEVU BUTONU */
 .createButton {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background-color: #7c3aed; /* Purple-600 benzeri */
+  padding: 0.6rem 1.2rem;
+  background-color: #7c3aed;
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
   transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-
 .createButton:hover {
-  background-color: #6d28d9; /* Purple-700 benzeri */
+  background-color: #6d28d9;
 }
 
-.calendarWrapper {
+/* İÇERİK ALANI */
+.contentWrapper {
   flex: 1;
   background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   border: 1px solid #e5e7eb;
   overflow: hidden;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Yenileme ikonu animasyonu */
+.listContainer {
+  padding: 0;
+  height: 100%;
+  overflow-y: auto;
+  background-color: #f9fafb; /* Listenin arka planı hafif gri */
+}
+
+.loadingState {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+/* Animation */
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-
 .spinning svg {
   animation: spin 1s linear infinite;
 }
