@@ -1,136 +1,141 @@
 // src/components/admin/AppointmentList/AppointmentList.tsx
+'use client'; 
 
-import React from 'react';
-import Link from 'next/link'; // Link importu
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import styles from './AppointmentList.module.css';
 import { AppointmentWithDetails } from '@/types/custom';
 
 interface Props {
   appointments: AppointmentWithDetails[];
-  viewMode?: 'dashboard' | 'customer-detail'; // Görünüm modu
 }
 
-export default function AppointmentList({ appointments, viewMode = 'dashboard' }: Props) {
-  
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('tr-TR', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+export default function AppointmentList({ appointments }: Props) {
+  const router = useRouter();
+  const [loadingId, setLoadingId] = useState<string | null>(null);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('tr-TR', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-    });
-  };
-
-  const getStatusLabel = (status: string) => {
-    const map: Record<string, string> = {
-      confirmed: 'Onaylı',
-      pending: 'Onay Bekliyor',
-      cancelled: 'İptal',
-      completed: 'Tamamlandı',
-      no_show: 'Gelmedi'
+  // --- STATÜ GÜNCELLEME VE ONAY MEKANİZMASI ---
+  const handleStatusUpdate = async (id: string, newStatus: string) => {
+    // KULLANICIYA SORALIM (Güvenlik Önlemi)
+    const messages: Record<string, string> = {
+      completed: 'Bu randevuyu TAMAMLANDI (Geldi) olarak işaretlemek istediğinize emin misiniz?',
+      no_show: 'Bu müşteriyi GELMEDİ olarak işaretlemek istediğinize emin misiniz?',
+      cancelled: 'Bu randevuyu İPTAL etmek istediğinize emin misiniz?'
     };
-    return map[status] || status;
+
+    if (!confirm(messages[newStatus] || 'İşlemi onaylıyor musunuz?')) return;
+
+    setLoadingId(id);
+    try {
+      const res = await fetch('/api/appointments/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: newStatus }),
+      });
+
+      if (!res.ok) throw new Error('Hata oluştu');
+      
+      router.refresh(); // Listeyi yenile ki kartın durumu güncellensin
+    } catch (error) {
+      alert('İşlem başarısız oldu.');
+    } finally {
+      setLoadingId(null);
+    }
   };
 
-  const renderCustomerBadge = (visitCount?: number | null, totalSpend?: number | null) => {
-    const count = visitCount || 0;
-    const spend = totalSpend || 0;
-    if (count <= 1) return <span style={{ fontSize: '0.7rem', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' }}>Yeni</span>;
-    if (spend > 5000) return <span style={{ fontSize: '0.7rem', backgroundColor: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' }}>VIP</span>;
-    return <span style={{ fontSize: '0.7rem', color: '#666', marginLeft: '6px' }}>({count}. Ziyaret)</span>;
-  };
+  // Formatlayıcılar
+  const formatTime = (date: string) => new Date(date).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  const formatDate = (date: string) => new Date(date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
 
   if (!appointments || appointments.length === 0) {
-    return <div style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>Kayıt bulunamadı.</div>;
+    return <div className={styles.emptyState}>Kayıt bulunamadı.</div>;
   }
 
   return (
     <div className={styles.container}>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            {/* Dashboard'da sadece saat yeterli, Detayda TARİH şart */}
-            <th>{viewMode === 'dashboard' ? 'Saat' : 'Tarih & Saat'}</th>
+      {appointments.map((app) => {
+        // İşlem yapılabilir mi? (Sadece Bekleyen ve Onaylılar için butonlar açık olsun)
+        const isActionable = ['pending', 'confirmed'].includes(app.status);
+        const isLoading = loadingId === app.id;
+
+        return (
+          <div key={app.id} className={styles.card}>
             
-            {/* Dashboard'da Müşteri şart, Detayda GEREKSİZ */}
-            {viewMode === 'dashboard' && <th>Müşteri</th>}
-            
-            <th>Hizmet</th>
-            <th>Uzman</th> {/* Yeni Sütun */}
-            <th>Durum</th>
-            <th>Fiyat</th>
-          </tr>
-        </thead>
-        <tbody>
-          {appointments.map((app) => (
-            <tr key={app.id} className={styles.row}>
-              
-              {/* ZAMAN SÜTUNU */}
-              <td>
-                <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>
-                    {formatTime(app.start_at)}
-                </div>
-                {viewMode === 'customer-detail' && (
-                    <div style={{ fontSize: '0.8rem', color: '#666' }}>
-                        {formatDate(app.start_at)}
-                    </div>
-                )}
-              </td>
+            {/* SOL: ZAMAN KUTUSU */}
+            <div className={styles.timeBlock}>
+              <div className={styles.time}>{formatTime(app.start_at)}</div>
+              <div className={styles.date}>{formatDate(app.start_at)}</div>
+            </div>
 
-              {/* MÜŞTERİ SÜTUNU (Sadece Dashboard) */}
-              {viewMode === 'dashboard' && (
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <Link 
-                      href={`/admin/customers/${app.customer_id}`} 
-                      className={styles.customerName}
-                      style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: '#ddd' }}
-                    >
-                        {app.customers?.full_name || 'Misafir'}
-                    </Link>
-                    {renderCustomerBadge(app.customers?.visit_count, app.customers?.total_spend)}
-                  </div>
-                  <div className={styles.customerPhone}>{app.customers?.phone}</div>
-                </td>
-              )}
-
-              {/* HİZMET SÜTUNU */}
-              <td>
-                {app.services?.name}
-                <div style={{ fontSize: '0.75rem', color: '#999' }}>
-                    {app.services?.duration_min} dk
-                </div>
-              </td>
-
-              {/* UZMAN SÜTUNU (Yeni) */}
-              <td>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '1.2rem' }}>👨‍⚕️</span>
-                    <span style={{ fontWeight: 500 }}>{app.staff?.name || '-'}</span>
-                </div>
-              </td>
-
-              {/* DURUM */}
-              <td>
-                <span className={`${styles.badge} ${styles[app.status]}`}>
-                  {getStatusLabel(app.status)}
+            {/* ORTA: DETAYLAR */}
+            <div className={styles.detailsBlock}>
+              <div className={styles.headerRow}>
+                <Link href={`/admin/customers/${app.customer_id}`} className={styles.customerName}>
+                  {app.customers?.full_name || 'Misafir'}
+                </Link>
+                {/* Statü Rozeti */}
+                <span className={`${styles.statusBadge} ${styles[app.status]}`}>
+                  {app.status === 'confirmed' ? '• ONAYLI' : 
+                   app.status === 'pending' ? '• BEKLİYOR' : 
+                   app.status === 'completed' ? '• TAMAMLANDI' : 
+                   app.status === 'no_show' ? '• GELMEDİ' : 
+                   app.status === 'cancelled' ? '• İPTAL' : app.status}
                 </span>
-              </td>
+              </div>
+              
+              <div className={styles.subInfo}>
+                <span>👤 {app.services?.name} ({app.services?.duration_min} dk)</span>
+                <span className={styles.phone}>📞 {app.customers?.phone}</span>
+                {app.staff?.name && <span className={styles.staff}>👨‍⚕️ {app.staff.name}</span>}
+              </div>
+            </div>
 
-              {/* FİYAT */}
-              <td>
-                {app.price_at_booking ? `₺${app.price_at_booking}` : '-'}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+            {/* SAĞ: BUTONLAR (AKSİYON ALANI) */}
+            <div className={styles.actionsBlock}>
+              {isActionable ? (
+                <div className={styles.buttonsWrapper}>
+                  {/* ✅ TAMAMLANDI BUTONU */}
+                  <button 
+                    onClick={() => handleStatusUpdate(app.id, 'completed')}
+                    disabled={isLoading}
+                    className={`${styles.circleBtn} ${styles.btnSuccess}`}
+                    title="Müşteri Geldi (Tamamla)"
+                  >
+                    ✓
+                  </button>
+
+                  {/* ❗ GELMEDİ BUTONU */}
+                  <button 
+                    onClick={() => handleStatusUpdate(app.id, 'no_show')}
+                    disabled={isLoading}
+                    className={`${styles.circleBtn} ${styles.btnWarning}`}
+                    title="Müşteri Gelmedi"
+                  >
+                    !
+                  </button>
+
+                  {/* ❌ İPTAL BUTONU */}
+                  <button 
+                    onClick={() => handleStatusUpdate(app.id, 'cancelled')}
+                    disabled={isLoading}
+                    className={`${styles.circleBtn} ${styles.btnDanger}`}
+                    title="Randevuyu İptal Et"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                /* İŞLEM KAPALI (KİLİT SİMGESİ) */
+                <div className={styles.lockedState}>
+                  🔒 <span style={{ marginLeft: '6px' }}>İşlem Kapalı</span>
+                </div>
+              )}
+            </div>
+
+          </div>
+        );
+      })}
     </div>
   );
 }
