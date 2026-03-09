@@ -1,19 +1,204 @@
-.calendarWrapper { background: var(--color-surface); border-radius: var(--radius-lg); padding: var(--space-24); }
-.calendarHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-24); }
-.navBtn { background: var(--color-background); border: 1px solid var(--color-border); width: 36px; height: 36px; border-radius: var(--radius-full); cursor: pointer; color: var(--color-primary); }
-.gridContainer { display: flex; flex-direction: column; }
-.daysRow { display: grid; grid-template-columns: 80px repeat(7, 1fr); border-bottom: 2px solid var(--color-background); }
-.dayHeader { padding: var(--space-12); text-align: center; color: var(--color-text-muted); }
-.today .dayNumber { background: var(--color-primary); color: white; border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; }
-.timelineBody { display: flex; max-height: 600px; overflow-y: auto; }
-.timeColumn { width: 80px; border-right: 1px solid var(--color-border); }
-.hourCell { height: 80px; font-size: var(--text-xs); color: var(--color-text-muted); text-align: center; padding-top: 10px; }
-.gridBody { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(28, 40px); background-image: linear-gradient(var(--color-border) 1px, transparent 1px); background-size: 100% 40px; }
-.appointmentCard { margin: 2px; background: rgba(212, 175, 55, 0.1); border-left: 3px solid var(--color-primary); border-radius: var(--radius-sm); padding: 4px; font-size: 11px; cursor: pointer; overflow: hidden; }
-.appCustomer { font-weight: 700; display: block; }
-.appService { font-size: 10px; color: var(--color-text-muted); }
+/* src/components/admin/Calendar/CalendarTimeline.module.css */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--color-white, #fff);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #fff;
+  flex-shrink: 0; /* Header daralmasın */
+}
+
+.title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.navButton {
+  padding: 0.4rem 0.8rem;
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+/* --- GRID MAIN --- */
+.gridContainer {
+  display: grid;
+  /* Sol sütun 60px, diğer 7 sütun eşit pay */
+  grid-template-columns: 60px repeat(7, 1fr);
+  
+  /* Satırlar: Her 30dk için 40px sabit yükseklik */
+  grid-auto-rows: 40px; 
+  
+  overflow-y: auto;
+  flex: 1;
+  position: relative;
+  /* Scrollbar estetiği */
+  scrollbar-width: thin;
+}
+
+/* SAAT DİLİMİ (Time Slot) */
+.timeSlot {
+  /* Artık grid hücresi olduğu için hizalama kolay */
+  text-align: right;
+  padding-right: 8px;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  position: relative;
+  top: -8px; /* Yazıyı çizginin üstüne ortala */
+  pointer-events: none; /* Tıklamayı engelle */
+}
+
+/* GÜN BAŞLIKLARI */
+.dayHeader {
+  text-align: center;
+  padding: 8px;
+  border-bottom: 1px solid #e5e7eb;
+  border-right: 1px solid #f3f4f6;
+  background-color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 20; /* Randevuların üstünde kalsın */
+  height: 60px; /* Header yüksekliği */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.dayName {
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: capitalize;
+  color: #374151;
+}
+
+.dayDate {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.today {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+.today .dayName, .today .dayDate {
+  color: #2563eb;
+}
+
+/* IZGARA ÇİZGİLERİ (Bölerek daha temiz görüntü elde ettik) */
+.gridColumnLine {
+  border-right: 1px solid #f3f4f6;
+  pointer-events: none;
+}
+
+.gridRowLine {
+  border-bottom: 1px solid #f9fafb; /* Çok hafif yatay çizgiler */
+  pointer-events: none;
+}
+
+/* RANDEVU KARTI */
+.eventCard {
+  margin: 1px 4px; /* Hafif boşluk */
+  padding: 4px;
+  border-radius: 4px;
+  border-left-width: 3px;
+  border-left-style: solid;
+  cursor: pointer;
+  overflow: hidden;
+  z-index: 10;
+  font-size: 0.75rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.eventCard:hover {
+  z-index: 15;
+  transform: scale(1.02);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.eventTitle {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.eventService {
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.eventTime {
+  font-size: 0.65rem;
+  margin-top: auto;
+  opacity: 0.7;
+}
+
+/* RENKLER */
+.statusConfirmed { background-color: #dcfce7; border-left-color: #16a34a; color: #14532d; }
+.statusPending { background-color: #fef9c3; border-left-color: #ca8a04; color: #713f12; }
+.statusCancelled { background-color: #fee2e2; border-left-color: #dc2626; color: #7f1d1d; }
+.statusCompleted { background-color: #dbeafe; border-left-color: #2563eb; color: #1e3a8a; }
+.statusDefault { background-color: #f3f4f6; border-left-color: #9ca3af; color: #374151; }
 
 /* MODAL */
-.modalOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modalContent { background: white; padding: var(--space-32); border-radius: var(--radius-lg); width: 90%; max-width: 400px; position: relative; }
-.closeBtn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 20px; cursor: pointer; }
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modalContent {
+  background: white;
+  width: 90%;
+  max-width: 400px;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+.modalTitle {
+  margin: 0;
+  padding: 1rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+.modalBody { padding: 1.5rem; }
+.modalBody p { margin: 0.5rem 0; color: #374151; }
+.modalFooter {
+  padding: 1rem;
+  background: #f9fafb;
+  text-align: right;
+}
+.closeButton {
+  background: white;
+  border: 1px solid #d1d5db;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.badgeWrapper { margin-top: 1rem; }
+.statusBadge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}

@@ -1,7 +1,13 @@
-import { createClient } from '@supabase/supabase-js';
+// src/server/db/supabaseClient.ts
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-// Tarayıcıda (Client-side) kullanılacak standart istemci
-export const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+// Mevcut kullanım bozulmasın diye (Singleton instance)
+export const supabaseClient = createSupabaseClient(supabaseUrl, supabaseAnonKey);
+
+// HATA ÇÖZÜMÜ: Bileşenlerin beklediği fonksiyonu export ediyoruz
+export const createClient = () => {
+  return createSupabaseClient(supabaseUrl, supabaseAnonKey);
+};

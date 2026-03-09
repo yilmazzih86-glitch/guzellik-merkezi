@@ -1,81 +1,54 @@
-'use client';
+// src/app/admin/appointments/page.tsx
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { supabaseClient } from '../../../server/db/supabaseClient';
-import { Card } from '../../../components/ui/Card/Card';
-import layoutStyles from '../../../styles/layout.module.css';
-import AppointmentList from '../../../components/admin/AppointmentList/AppointmentList';
-import CalendarTimeline from '../../../components/admin/Calendar/CalendarTimeline';
-
-interface Appointment {
-  id: string;
-  start_at: string;
-  end_at: string;
-  status: 'confirmed' | 'completed' | 'cancelled' | 'no_show' | 'pending';
-  customer: {
-    full_name: string;
-    phone: string;
-  };
-  service: {
-    name: string;
-    duration_min: number;
-  };
-  staff: {
-    name: string;
-  } | null;
-}
+import React, { useState } from 'react';
+import CalendarTimeline from '@/components/admin/Calendar/CalendarTimeline';
+import styles from './Appointments.module.css'; // Yeni CSS Modülü
 
 export default function AppointmentsPage() {
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'upcoming'>('upcoming');
-  const [viewType, setViewType] = useState<'list' | 'calendar'>('calendar');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchAppointments();
-  }, [filter]);
-
-  const fetchAppointments = async () => {
-    setLoading(true);
-    let query = supabaseClient
-      .from('appointments')
-      .select(`
-        id, start_at, end_at, status,
-        customer:customers(full_name, phone),
-        service:services(name, duration_min),
-        staff:staff(name)
-      `)
-      .order('start_at', { ascending: true });
-
-    if (filter === 'upcoming') {
-      const now = new Date().toISOString();
-      query = query.gte('start_at', now).in('status', ['confirmed', 'pending']);
-    }
-
-    const { data, error } = await query;
-    if (data) setAppointments(data as any);
-    setLoading(false);
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    setTimeout(() => setIsRefreshing(false), 1000);
   };
 
   return (
-    <div className={`animate-fade-up ${layoutStyles.stackLg}`}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-24)', flexWrap: 'wrap', gap: 'var(--space-16)' }}>
-        <div>
-          <h1 style={{ margin: '0 0 var(--space-4) 0', color: 'var(--color-text-main)', fontWeight: '300', fontSize: '1.75rem' }}>Randevu Ajandası</h1>
-          <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>Luxe Beauty Center operasyon yönetimi.</p>
+    <div className={styles.pageContainer}>
+      {/* HEADER */}
+      <div className={styles.header}>
+        <div className={styles.headerTitleGroup}>
+          <h1 className={styles.pageTitle}>Randevu Takvimi</h1>
+          <p className={styles.pageSubtitle}>Haftalık doluluk oranı ve randevu yönetimi</p>
         </div>
         
-        <div style={{ display: 'flex', gap: 'var(--space-12)' }}>
-          <div style={{ display: 'flex', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '4px' }}>
-            <button onClick={() => setViewType('calendar')} style={{ padding: '8px 16px', border: 'none', borderRadius: 'var(--radius-sm)', backgroundColor: viewType === 'calendar' ? 'var(--color-primary)' : 'transparent', color: viewType === 'calendar' ? '#fff' : 'var(--color-text-muted)', cursor: 'pointer' }}>📅 Takvim</button>
-            <button onClick={() => setViewType('list')} style={{ padding: '8px 16px', border: 'none', borderRadius: 'var(--radius-sm)', backgroundColor: viewType === 'list' ? 'var(--color-primary)' : 'transparent', color: viewType === 'list' ? '#fff' : 'var(--color-text-muted)', cursor: 'pointer' }}>📜 Liste</button>
-          </div>
+        <div className={styles.actionGroup}>
+          <button 
+            onClick={handleRefresh}
+            className={`${styles.refreshButton} ${isRefreshing ? styles.spinning : ''}`}
+            disabled={isRefreshing}
+          >
+            {/* SVG ikon kodu aynı kalabilir, sınıfları temizledik */}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
+            Yenile
+          </button>
+
+          <button className={styles.createButton}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Yeni Randevu
+          </button>
         </div>
       </div>
 
-      {loading ? <p>Yükleniyor...</p> : (
-        viewType === 'list' ? <AppointmentList appointments={appointments as any} /> : <CalendarTimeline appointments={appointments as any} />
-      )}
+      {/* CALENDAR WRAPPER */}
+      <div className={styles.calendarWrapper}>
+        <CalendarTimeline />
+      </div>
     </div>
   );
 }

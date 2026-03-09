@@ -207,3 +207,146 @@
   border-radius: 8px;
   border: 1px solid #f3f4f6;
 }
+/* src/app/admin/appointments/Appointments.module.css */
+
+.pageContainer {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 2rem);
+  gap: 1rem;
+  padding: 1rem;
+  box-sizing: border-box;
+  background-color: #f9fafb; /* Sayfa arkaplanı */
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border: 1px solid #e5e7eb;
+}
+
+.headerTitleGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.pageTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.pageSubtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0.25rem 0 0 0;
+}
+
+.actionGroup {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* --- TOGGLE BUTTONS --- */
+.toggleGroup {
+  display: flex;
+  background-color: #f3f4f6;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.toggleButton {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.toggleButton:hover {
+  color: #374151;
+}
+
+.toggleButton.active {
+  background-color: white;
+  color: #7c3aed; /* Theme primary color */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  font-weight: 600;
+}
+
+/* --- DİĞER BUTONLAR --- */
+.refreshButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: white;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.refreshButton:hover {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.createButton {
+  padding: 0.6rem 1.2rem;
+  background-color: #7c3aed;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
+  transition: background-color 0.2s;
+}
+
+.createButton:hover {
+  background-color: #6d28d9;
+}
+
+/* --- İÇERİK ALANI --- */
+.contentWrapper {
+  flex: 1;
+  background-color: white; /* Takvim veya Listenin arkaplanı */
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border: 1px solid #e5e7eb;
+  overflow: hidden; /* Scroll içeride olsun */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.listContainer {
+  padding: 1.5rem;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.loadingState {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
