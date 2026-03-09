@@ -9,9 +9,10 @@ import { AppointmentWithDetails } from '@/types/custom';
 
 interface Props {
   appointments: AppointmentWithDetails[];
+  viewMode?: string;
 }
 
-export default function AppointmentList({ appointments }: Props) {
+export default function AppointmentList({ appointments, viewMode }: Props) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
