@@ -1,0 +1,148 @@
+.pageContainer {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f3f4f6;
+  padding: 1rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.card, .errorCard {
+  background: white;
+  padding: 2.5rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+  width: 100%;
+  max-width: 450px;
+  text-align: center;
+}
+
+.loading {
+  font-size: 1.1rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.errorCard h2 {
+  color: #ef4444;
+  margin-top: 0;
+}
+
+.errorCard p {
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+/* İptal Onay Ekranı */
+.iconWarning {
+  font-size: 3.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.cancelState h2 {
+  color: #1f2937;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+}
+
+.desc {
+  color: #6b7280;
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+.detailsBox {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1.25rem;
+  text-align: left;
+  margin-bottom: 2rem;
+}
+
+.detailsBox p {
+  margin: 0 0 0.75rem 0;
+  color: #1f2937;
+  font-size: 0.95rem;
+}
+
+.detailsBox p:last-child {
+  margin: 0;
+}
+
+.detailsBox span {
+  font-weight: 600;
+  color: #64748b;
+  display: inline-block;
+  width: 70px;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cancelBtn {
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.875rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancelBtn:hover:not(:disabled) {
+  background-color: #dc2626;
+}
+
+.cancelBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.keepBtn {
+  background-color: white;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  padding: 0.875rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.keepBtn:hover {
+  background-color: #f9fafb;
+  color: #1f2937;
+  border-color: #9ca3af;
+}
+
+/* Başarılı Durum (Zaten İptal Edildiyse veya Yeni İptal Edildiyse) */
+.successState .icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.successState h2 {
+  color: #10b981;
+  margin-top: 0;
+}
+
+.successState p {
+  color: #374151;
+  line-height: 1.5;
+}
+
+.subText {
+  font-size: 0.9rem;
+  color: #6b7280 !important;
+  margin-top: 1.5rem !important;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1rem;
+}
