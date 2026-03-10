@@ -42,6 +42,7 @@ export async function GET(request: Request) {
     if (error) throw error;
 
     for (const appt of appointments || []) {
+      
       const startAt = parseISO(appt.start_at);
       const endAt = parseISO(appt.end_at);
       const sentTypes = appt.reminders?.map((r: any) => r.type) || [];
@@ -106,6 +107,7 @@ export async function GET(request: Request) {
          } catch (webhookErr) {
             console.error('n8n Webhook hatası:', webhookErr);
          }
+         console.log(`Randevu ${appt.id} -> Başlamasına kalan dakika: ${minsToStart}, Durum: ${appt.status}`);
       }
     }
 
