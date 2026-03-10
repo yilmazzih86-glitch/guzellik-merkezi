@@ -1,18 +1,25 @@
 // src/components/admin/AppointmentList/AppointmentList.tsx
 'use client'; 
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import {
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from '@tanstack/react-table';
 import styles from './AppointmentList.module.css';
 import { AppointmentWithDetails } from '@/types/custom';
 
 interface Props {
   appointments: AppointmentWithDetails[];
   viewMode?: string;
+  onUpdate?: () => void; 
 }
 
-export default function AppointmentList({ appointments, viewMode }: Props) {
+export default function AppointmentList({ appointments, viewMode, onUpdate }: Props) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
@@ -36,6 +43,7 @@ export default function AppointmentList({ appointments, viewMode }: Props) {
 
       if (!res.ok) throw new Error('Hata oluştu');
       
+      if (onUpdate) onUpdate(); // Ana sayfadaki tetikleyiciyi ateşler
       router.refresh(); 
     } catch (error) {
       alert('İşlem başarısız oldu.');
@@ -44,89 +52,159 @@ export default function AppointmentList({ appointments, viewMode }: Props) {
     }
   };
 
-  // Formatlayıcılar
-  const formatTime = (date: string) => new Date(date).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-  const formatDate = (date: string) => new Date(date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+  // --- TANSTACK TABLE YAPILANDIRMASI ---
+  const columnHelper = createColumnHelper<AppointmentWithDetails>();
 
-  // Veri yoksa veya boşsa
+  // Sütunları useMemo ile sarmalıyoruz ki gereksiz re-render (döngü) olmasın
+  const columns = useMemo(() => [
+    
+    // 1. SÜTUN: Tarih & Saat
+    columnHelper.accessor('start_at', {
+      header: 'Tarih & Saat',
+      cell: (info) => {
+        const val = info.getValue();
+        const dateObj = new Date(val);
+        const time = dateObj.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+        const date = dateObj.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+        return (
+          <div className={styles.dateTimeCell}>
+            <span className={styles.time}>{time}</span>
+            <span className={styles.date}>{date}</span>
+          </div>
+        );
+      },
+    }),
+
+    // 2. SÜTUN: Müşteri
+    columnHelper.accessor(row => row.customers, {
+      id: 'customer',
+      header: 'Müşteri',
+      cell: (info) => {
+        const customer = info.getValue();
+        const rowId = info.row.original.customer_id;
+        return (
+          <div className={styles.customerCell}>
+            <Link href={`/admin/customers/${rowId}`} className={styles.customerName}>
+              {customer?.full_name || 'Misafir'}
+            </Link>
+            <span className={styles.customerPhone}>{customer?.phone || '-'}</span>
+          </div>
+        );
+      }
+    }),
+
+    // 3. SÜTUN: Hizmet & Personel
+    columnHelper.accessor(row => row, {
+      id: 'service_staff',
+      header: 'Hizmet / Personel',
+      cell: (info) => {
+        const row = info.getValue();
+        return (
+          <div className={styles.serviceCell}>
+            <span className={styles.serviceName}>{row.services?.name}</span>
+            <span className={styles.staffName}>{row.staff?.name ? `Uzman: ${row.staff.name}` : ''}</span>
+          </div>
+        );
+      }
+    }),
+
+    // 4. SÜTUN: Durum
+    columnHelper.accessor('status', {
+      header: 'Durum',
+      cell: (info) => {
+        const status = info.getValue();
+        const labels: Record<string, string> = {
+          confirmed: 'ONAYLI',
+          pending: 'BEKLİYOR',
+          completed: 'TAMAMLANDI',
+          no_show: 'GELMEDİ',
+          cancelled: 'İPTAL'
+        };
+        return (
+          <span className={`${styles.statusBadge} ${styles[status]}`}>
+            {labels[status] || status}
+          </span>
+        );
+      }
+    }),
+
+    // 5. SÜTUN: Aksiyonlar (İşlemler)
+    columnHelper.display({
+      id: 'actions',
+      header: 'İşlemler',
+      cell: (info) => {
+        const app = info.row.original;
+        const isActionable = ['pending', 'confirmed'].includes(app.status);
+        const isLoading = loadingId === app.id;
+
+        if (!isActionable) {
+          return <div className={styles.lockedState}>🔒 Kapalı</div>;
+        }
+
+        return (
+          <div className={styles.buttonsWrapper}>
+            <button 
+              onClick={() => handleStatusUpdate(app.id, 'completed')}
+              disabled={isLoading}
+              className={`${styles.actionBtn} ${styles.btnSuccess}`}
+              title="Geldi"
+            >✓</button>
+            <button 
+              onClick={() => handleStatusUpdate(app.id, 'no_show')}
+              disabled={isLoading}
+              className={`${styles.actionBtn} ${styles.btnWarning}`}
+              title="Gelmedi"
+            >!</button>
+            <button 
+              onClick={() => handleStatusUpdate(app.id, 'cancelled')}
+              disabled={isLoading}
+              className={`${styles.actionBtn} ${styles.btnDanger}`}
+              title="İptal"
+            >✕</button>
+          </div>
+        );
+      }
+    })
+  ], [loadingId]);
+
+  const table = useReactTable({
+    data: appointments,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
   if (!appointments || appointments.length === 0) {
     return <div className={styles.emptyState}>Gösterilecek randevu bulunamadı.</div>;
   }
 
   return (
-    <div className={styles.container}>
-      {appointments.map((app) => {
-        const isActionable = ['pending', 'confirmed'].includes(app.status);
-        const isLoading = loadingId === app.id;
-
-        return (
-          <div key={app.id} className={styles.card}>
-            
-            {/* SOL: ZAMAN */}
-            <div className={styles.timeBlock}>
-              <div className={styles.time}>{formatTime(app.start_at)}</div>
-              <div className={styles.date}>{formatDate(app.start_at)}</div>
-            </div>
-
-            {/* ORTA: DETAYLAR */}
-            <div className={styles.detailsBlock}>
-              <div className={styles.headerRow}>
-                <Link href={`/admin/customers/${app.customer_id}`} className={styles.customerName}>
-                  {app.customers?.full_name || 'Misafir'}
-                </Link>
-                <span className={`${styles.statusBadge} ${styles[app.status]}`}>
-                  {app.status === 'confirmed' ? '• ONAYLI' : 
-                   app.status === 'pending' ? '• BEKLİYOR' : 
-                   app.status === 'completed' ? '• TAMAMLANDI' : 
-                   app.status === 'no_show' ? '• GELMEDİ' : 
-                   app.status === 'cancelled' ? '• İPTAL' : app.status}
-                </span>
-              </div>
-              
-              <div className={styles.subInfo}>
-                <span>👤 {app.services?.name}</span>
-                <span className={styles.phone}>📞 {app.customers?.phone}</span>
-                {app.staff?.name && <span className={styles.staff}>👨‍⚕️ {app.staff.name}</span>}
-              </div>
-            </div>
-
-            {/* SAĞ: BUTONLAR */}
-            <div className={styles.actionsBlock}>
-              {isActionable ? (
-                <div className={styles.buttonsWrapper}>
-                  <button 
-                    onClick={() => handleStatusUpdate(app.id, 'completed')}
-                    disabled={isLoading}
-                    className={`${styles.circleBtn} ${styles.btnSuccess}`}
-                    title="Geldi"
-                  >
-                    ✓
-                  </button>
-                  <button 
-                    onClick={() => handleStatusUpdate(app.id, 'no_show')}
-                    disabled={isLoading}
-                    className={`${styles.circleBtn} ${styles.btnWarning}`}
-                    title="Gelmedi"
-                  >
-                    !
-                  </button>
-                  <button 
-                    onClick={() => handleStatusUpdate(app.id, 'cancelled')}
-                    disabled={isLoading}
-                    className={`${styles.circleBtn} ${styles.btnDanger}`}
-                    title="İptal"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ) : (
-                <div className={styles.lockedState}>🔒 İşlem Kapalı</div>
-              )}
-            </div>
-
-          </div>
-        );
-      })}
+    <div className={styles.tableWrapper}>
+      <table className={styles.table}>
+        <thead>
+          {table.getHeaderGroups().map(headerGroup => (
+            <tr key={headerGroup.id}>
+              {headerGroup.headers.map(header => (
+                <th key={header.id}>
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(header.column.columnDef.header, header.getContext())}
+                </th>
+              ))}
+            </tr>
+          ))}
+        </thead>
+        <tbody>
+          {table.getRowModel().rows.map(row => (
+            <tr key={row.id}>
+              {row.getVisibleCells().map(cell => (
+                <td key={cell.id}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

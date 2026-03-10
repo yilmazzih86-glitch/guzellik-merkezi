@@ -1,23 +1,23 @@
-// src/components/admin/Calendar/CalendarTimeline.tsx
+// src/components/admin/Calendar/CalendarMonthly.tsx
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/server/db/supabaseClient';
 import { 
   format, 
+  startOfMonth, 
+  endOfMonth, 
   startOfWeek, 
-  addDays, 
-  addWeeks, 
-  subWeeks, 
+  endOfWeek, 
+  addMonths, 
+  subMonths, 
+  isSameMonth, 
   isSameDay, 
   parseISO, 
-  differenceInMinutes,
-  startOfDay,
-  setHours,
-  setMinutes
+  addDays 
 } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import styles from './CalendarTimeline.module.css';
+import styles from './CalendarMonthly.module.css';
 
 // Tip Tanımları
 type Appointment = {
@@ -32,36 +32,35 @@ type Appointment = {
 
 interface Props {
   refreshTrigger?: number;
-  onUpdate?: () => void; // İşlem yapıldığında ana sayfayı haberdar etmek için eklendi
+  onUpdate?: () => void;
 }
 
-export default function CalendarTimeline({ refreshTrigger = 0, onUpdate }: Props) {
+export default function CalendarMonthly({ refreshTrigger = 0, onUpdate }: Props) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
-  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null); // Aksiyon butonları için yüklenme state'i
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const supabase = useMemo(() => createClient(), []);
 
-  // Takvim Ayarları
-  const START_HOUR = 9;
-  const END_HOUR = 20;
-  const SLOT_DURATION = 30; 
-  const TOTAL_SLOTS = (END_HOUR - START_HOUR) * (60 / SLOT_DURATION);
+  // Ayın başı ve sonu, takvimin tablosu için haftanın başı ve sonu
+  const monthStart = useMemo(() => startOfMonth(currentDate), [currentDate]);
+  const monthEnd = useMemo(() => endOfMonth(monthStart), [monthStart]);
+  const startDate = useMemo(() => startOfWeek(monthStart, { weekStartsOn: 1 }), [monthStart]);
+  const endDate = useMemo(() => endOfWeek(monthEnd, { weekStartsOn: 1 }), [monthEnd]);
 
-  // Sonsuz Döngü Korumalı Tarih Hesaplamaları
-  const startDate = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
-  const weekDays = useMemo(() => Array.from({ length: 7 }).map((_, i) => addDays(startDate, i)), [startDate]);
+  // Döngü sızıntılarını önlemek için metne çeviriyoruz
   const startDateISO = startDate.toISOString();
+  const endDateISO = endDate.toISOString();
 
-  // Veri Çekme
+  // Veri Çekme İşlemi
   const fetchAppointments = useCallback(async () => {
     let isMounted = true;
     setLoading(true);
-    
-    const endISO = addDays(new Date(startDateISO), 7).toISOString();
 
+    // Ay görünümünde ekranda görünen ilk günden (geçen ayın son günleri olabilir) 
+    // son güne (gelecek ayın ilk günleri) kadar olan tüm randevuları çeker.
     const { data, error } = await supabase
       .from('appointments')
       .select(`
@@ -71,23 +70,23 @@ export default function CalendarTimeline({ refreshTrigger = 0, onUpdate }: Props
         staff (name)
       `)
       .gte('start_at', startDateISO)
-      .lt('start_at', endISO);
+      .lte('start_at', endDateISO);
 
     if (error) {
-      console.error('Takvim veri hatası:', error);
+      console.error('Aylık takvim veri hatası:', error);
     } else if (isMounted) {
       setAppointments(data as any || []);
     }
     
     if (isMounted) setLoading(false);
     return () => { isMounted = false };
-  }, [startDateISO, supabase, refreshTrigger]);
+  }, [startDateISO, endDateISO, supabase, refreshTrigger]);
 
   useEffect(() => {
     fetchAppointments();
   }, [fetchAppointments]);
 
-  // --- STATÜ GÜNCELLEME İŞLEMİ (Yeni Eklendi) ---
+  // Aksiyon Güncellemesi (Geldi / İptal vb.)
   const handleStatusUpdate = async (id: string, newStatus: string) => {
     const messages: Record<string, string> = {
       completed: 'Bu randevuyu TAMAMLANDI (Geldi) olarak işaretlemek istediğinize emin misiniz?',
@@ -107,7 +106,6 @@ export default function CalendarTimeline({ refreshTrigger = 0, onUpdate }: Props
 
       if (!res.ok) throw new Error('Hata oluştu');
       
-      // Başarılı olursa popup'ı kapat, veriyi yenile ve ana sayfaya haber ver
       setSelectedAppointment(null);
       fetchAppointments(); 
       if (onUpdate) onUpdate(); 
@@ -118,24 +116,15 @@ export default function CalendarTimeline({ refreshTrigger = 0, onUpdate }: Props
     }
   };
 
-  // Grid Satır Hesaplama
-  const getGridPosition = (start: string, end: string) => {
-    const sDate = parseISO(start);
-    const eDate = parseISO(end);
-    
-    const dayStart = setMinutes(setHours(startOfDay(sDate), START_HOUR), 0);
-    let diffStart = differenceInMinutes(sDate, dayStart);
-    let duration = differenceInMinutes(eDate, sDate);
+  // Takvim Günlerini Oluşturma
+  const days = [];
+  let day = startDate;
+  while (day <= endDate) {
+    days.push(day);
+    day = addDays(day, 1);
+  }
 
-    if (diffStart < 0) diffStart = 0; 
-    if (duration <= 0) duration = 30;
-
-    const startRow = Math.floor(diffStart / SLOT_DURATION) + 2; 
-    const span = Math.ceil(duration / SLOT_DURATION);
-
-    return { gridRowStart: startRow, gridRowEnd: `span ${span}` };
-  };
-
+  // Sınıf ve Etiket Yardımcıları
   const getStatusClass = (status: string) => {
     switch (status) {
       case 'confirmed': return styles.statusConfirmed;
@@ -158,75 +147,66 @@ export default function CalendarTimeline({ refreshTrigger = 0, onUpdate }: Props
     }
   };
 
+  const weekDaysHeader = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+
   return (
     <div className={styles.container}>
       {/* HEADER */}
       <div className={styles.header}>
-        <button className={styles.navButton} onClick={() => setCurrentDate(subWeeks(currentDate, 1))}>&lt; Önceki</button>
+        <button className={styles.navButton} onClick={() => setCurrentDate(subMonths(currentDate, 1))}>&lt; Önceki Ay</button>
         <h2 className={styles.title}>
-          {format(startDate, 'd MMMM', { locale: tr })} - {format(addDays(startDate, 6), 'd MMMM yyyy', { locale: tr })}
+          {format(monthStart, 'MMMM yyyy', { locale: tr })}
         </h2>
-        <button className={styles.navButton} onClick={() => setCurrentDate(addWeeks(currentDate, 1))}>Sonraki &gt;</button>
+        <button className={styles.navButton} onClick={() => setCurrentDate(addMonths(currentDate, 1))}>Sonraki Ay &gt;</button>
       </div>
 
-      {/* GRID */}
+      {/* AYLIK GRID */}
       <div className={styles.gridContainer}>
-        
-        {/* Y-EKSENİ: Saat Dilimleri (09:00, 09:30, 10:00 şeklinde tüm dilimler) */}
-        {Array.from({ length: TOTAL_SLOTS }).map((_, i) => {
-          const timeBase = setMinutes(setHours(startOfDay(new Date()), START_HOUR), 0);
-          const slotTime = new Date(timeBase.getTime() + i * SLOT_DURATION * 60000);
-          
-          return (
-            <div key={`time-${i}`} className={styles.timeSlot} style={{ gridColumn: 1, gridRow: i + 2 }}>
-              {format(slotTime, 'HH:mm')} 
-            </div>
-          );
-        })}
-
-        {/* X-EKSENİ: Gün Başlıkları */}
-        {weekDays.map((day, i) => (
-          <div key={`day-${i}`} className={`${styles.dayHeader} ${isSameDay(day, new Date()) ? styles.today : ''}`} style={{ gridColumn: i + 2, gridRow: 1 }}>
-            <div className={styles.dayName}>{format(day, 'EEEE', { locale: tr })}</div>
-            <div className={styles.dayDate}>{format(day, 'd MMM', { locale: tr })}</div>
+        {/* Gün İsimleri (Pzt, Sal...) */}
+        {weekDaysHeader.map((dayName, index) => (
+          <div key={`header-${index}`} className={styles.dayNameHeader}>
+            {dayName}
           </div>
         ))}
 
-        {/* ARKAPLAN ÇİZGİLERİ */}
-        {weekDays.map((_, colIndex) => (
-           <div key={`col-line-${colIndex}`} className={styles.gridColumnLine} style={{ gridColumn: colIndex + 2, gridRow: `2 / span ${TOTAL_SLOTS}` }}></div>
-        ))}
-         {Array.from({ length: TOTAL_SLOTS }).map((_, i) => (
-   <div 
-     key={`row-line-${i}`} 
-     className={`${styles.gridRowLine} ${i === 0 ? styles.firstRowLine : ''}`} 
-     style={{ gridColumn: '2 / span 7', gridRow: i + 2 }}
-   ></div>
-))}
-
-        {/* RANDEVU KARTLARI */}
-        {!loading && appointments.map((apt) => {
-          const aptDate = parseISO(apt.start_at);
-          const dayIndex = (aptDate.getDay() + 6) % 7; 
-          const gridCol = dayIndex + 2; 
-          const position = getGridPosition(apt.start_at, apt.end_at);
+        {/* Takvim Hücreleri */}
+        {days.map((dayItem, index) => {
+          // Bu güne ait randevuları filtrele
+          const dailyAppointments = appointments.filter(apt => isSameDay(parseISO(apt.start_at), dayItem));
+          // Tarih saati sırala
+          dailyAppointments.sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime());
 
           return (
-            <div
-              key={apt.id}
-              className={`${styles.eventCard} ${getStatusClass(apt.status)}`}
-              style={{ gridColumn: gridCol, ...position }}
-              onClick={() => setSelectedAppointment(apt)}
+            <div 
+              key={`day-${index}`} 
+              className={`
+                ${styles.dayCell} 
+                ${!isSameMonth(dayItem, monthStart) ? styles.otherMonth : ''} 
+                ${isSameDay(dayItem, new Date()) ? styles.today : ''}
+              `}
             >
-              <div className={styles.eventTitle}>{apt.customers?.full_name || 'Misafir'}</div>
-              <div className={styles.eventService}>{apt.services?.name}</div>
-              <div className={styles.eventTime}>{format(aptDate, 'HH:mm')}</div>
+              <div className={styles.dateNumber}>
+                {format(dayItem, 'd')}
+              </div>
+              
+              <div className={styles.eventList}>
+                {loading ? null : dailyAppointments.map((apt) => (
+                  <div 
+                    key={apt.id} 
+                    className={`${styles.eventPill} ${getStatusClass(apt.status)}`}
+                    onClick={() => setSelectedAppointment(apt)}
+                  >
+                    <span className={styles.eventTime}>{format(parseISO(apt.start_at), 'HH:mm')}</span>
+                    <span className={styles.eventTitle}>{apt.customers?.full_name || 'Misafir'}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           );
         })}
       </div>
 
-      {/* MODAL (Detay ve Aksiyon Butonları) */}
+      {/* MODAL (Haftalık takvim ile tamamen aynı UI) */}
       {selectedAppointment && (
         <div className={styles.modalOverlay} onClick={() => setSelectedAppointment(null)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
@@ -246,7 +226,6 @@ export default function CalendarTimeline({ refreshTrigger = 0, onUpdate }: Props
             </div>
             
             <div className={styles.modalFooter}>
-              {/* YENİ EKLENDİ: Aksiyon Butonları (Sadece pending ve confirmed için aktif) */}
               <div className={styles.modalActions}>
                 {['pending', 'confirmed'].includes(selectedAppointment.status) && (
                   <>
@@ -273,7 +252,6 @@ export default function CalendarTimeline({ refreshTrigger = 0, onUpdate }: Props
               </div>
               <button className={styles.closeButton} onClick={() => setSelectedAppointment(null)}>Kapat</button>
             </div>
-
           </div>
         </div>
       )}

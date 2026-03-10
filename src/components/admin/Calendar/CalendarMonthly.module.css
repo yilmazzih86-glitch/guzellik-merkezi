@@ -1,4 +1,4 @@
-/* src/components/admin/Calendar/CalendarTimeline.module.css */
+/* src/components/admin/Calendar/CalendarMonthly.module.css */
 
 .container {
   background-color: #ffffff;
@@ -12,6 +12,7 @@
   gap: 1.5rem;
 }
 
+/* --- HEADER (Navigasyon) --- */
 .header {
   display: flex;
   justify-content: space-between;
@@ -25,6 +26,7 @@
   font-weight: 700;
   color: #0f172a;
   margin: 0;
+  text-transform: capitalize;
 }
 
 .navButton {
@@ -44,126 +46,139 @@
   color: #0f172a;
 }
 
-/* --- GRID YAPISI (Alan Genişletildi ve İç İçe Geçme Çözüldü) --- */
+/* --- AYLIK GRID YAPISI --- */
 .gridContainer {
   display: grid;
-  /* Saat sütununu 70px yaptık (60'tan 70'e) rahat yazsın diye */
-  grid-template-columns: 70px repeat(7, minmax(130px, 1fr));
-  grid-auto-rows: 45px; /* UX DÜZELTMESİ: 30px çok dardı, 45px ile ferahlattık */
-  overflow-x: auto; 
-  position: relative;
-  padding-bottom: 1rem;
+  grid-template-columns: repeat(7, minmax(0, 1fr)); /* 7 Eşit Sütun */
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden; /* Köşelerin yuvarlak kalması için */
 }
 
-/* Gün Başlıkları */
-.dayHeader {
+/* Gün İsimleri Başlıkları (Pzt, Sal...) */
+.dayNameHeader {
+  background-color: #f8fafc;
+  padding: 12px 8px;
   text-align: center;
-  padding: 10px 0;
-  border-bottom: 2px solid #e2e8f0;
-  background-color: #ffffff;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.dayName {
   font-size: 0.85rem;
   font-weight: 700;
   color: #64748b;
   text-transform: uppercase;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
 }
 
-.dayDate {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin-top: 4px;
-}
-
-.today .dayName,
-.today .dayDate {
-  color: #2563eb; 
-}
-
-/* Saat Dilimleri (09:00, 09:30 vs.) */
-.timeSlot {
-  text-align: right;
-  padding-right: 16px; 
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #64748b;
-  transform: translateY(-6); /* EKSİ 8 YERİNE SIFIR YAPTIK */
-  padding-top: 5px; /* Çizginin hemen altına, hafif boşluklu oturması için */
-}
-
-.gridColumnLine {
-  border-right: 1px dashed #e2e8f0;
-  z-index: 1;
-}
-
-.gridColumnLine:last-child {
+.dayNameHeader:last-child {
   border-right: none;
 }
 
-.gridRowLine {
-  border-bottom: 1px solid #f1f5f9;
-  z-index: 1;
-  
-}
-.firstRowLine {
-  transform: translateY(0) !important; 
-}
-
-/* --- RANDEVU KARTLARI --- */
-.eventCard {
-  margin: 8px 4px 2px 4px;
-  padding: 8px 10px; /* İç boşluğu artırdık */
-  border-radius: 6px;
-  font-size: 0.8rem; /* Fontu 1 tık büyüttük */
-  cursor: pointer;
-  z-index: 5;
-  overflow: hidden;
-  transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  border-left: 4px solid transparent;
+/* Takvim Hücreleri (Günler) */
+.dayCell {
+  min-height: 120px;
+  padding: 8px;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: background-color 0.2s ease;
 }
 
-.eventCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 6; 
+.dayCell:nth-child(7n) {
+  border-right: none;
 }
 
-.eventTitle {
-  font-weight: 700;
-  color: #0f172a;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.dayCell:hover {
+  background-color: #f8fafc;
 }
 
-.eventService {
+.otherMonth {
+  background-color: #fdfdfd;
+}
+
+.otherMonth .dateNumber {
+  color: #cbd5e1; /* Geçmiş/Gelecek ay günleri silik görünür */
+}
+
+/* Tarih Numarası (Örn: 15) */
+.dateNumber {
+  font-size: 0.9rem;
+  font-weight: 600;
   color: #334155;
-  margin-top: 2px;
+  text-align: right;
+  padding-right: 4px;
+}
+
+/* Bugün Vurgusu */
+.today .dateNumber {
+  color: #2563eb;
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.today {
+  background-color: #eff6ff; /* Çok hafif mavi arkaplan */
+}
+
+/* Randevu Kutucukları Alanı */
+.eventList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  overflow-y: auto; /* Çok randevu varsa içeride kaydırılsın */
+  max-height: 100px; /* Hücrenin çok fazla uzamasını engeller */
+}
+
+/* Scrollbar Gizleme/İnceltme */
+.eventList::-webkit-scrollbar {
+  width: 4px;
+}
+.eventList::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 4px;
+}
+
+/* Randevu "Hapı" (Pill) */
+.eventPill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  border-left: 3px solid transparent;
+  transition: transform 0.1s ease, filter 0.2s ease;
+}
+
+.eventPill:hover {
+  filter: brightness(0.95);
 }
 
 .eventTime {
-  font-weight: 600;
-  margin-top: 4px;
+  font-weight: 700;
   opacity: 0.8;
 }
 
-/* --- UX/UI RENK DÜZELTMELERİ (Yılmaz Bey'in İstediği Gibi) --- */
+.eventTitle {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- DURUM (STATUS) RENKLERİ --- */
 .statusConfirmed { background-color: #dbeafe; border-left-color: #2563eb; color: #1e40af; }
 .statusCompleted { background-color: #dcfce3; border-left-color: #16a34a; color: #166534; }
-.statusPending { background-color: #f1f5f9; border-left-color: #64748b; color: #475569; } /* Bekliyor: Gri */
-.statusNoShow { background-color: #fef3c7; border-left-color: #d97706; color: #b45309; } /* Gelmedi: Sarı/Turuncu */
-.statusCancelled { background-color: #fee2e2; border-left-color: #dc2626; color: #b91c1c; } /* İptal: Kırmızı */
+.statusPending { background-color: #f1f5f9; border-left-color: #64748b; color: #475569; } 
+.statusNoShow { background-color: #fef3c7; border-left-color: #d97706; color: #b45309; } 
+.statusCancelled { background-color: #fee2e2; border-left-color: #dc2626; color: #b91c1c; } 
 
-/* --- MODAL --- */
+/* --- MODAL (Haftalık Takvim ile Birebir Aynı) --- */
 .modalOverlay {
   position: fixed;
   top: 0;
@@ -182,7 +197,7 @@
   background-color: #ffffff;
   border-radius: 16px;
   width: 90%;
-  max-width: 450px; /* Butonlar sığsın diye biraz genişlettik */
+  max-width: 450px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   animation: modalFadeIn 0.3s ease-out;
@@ -238,13 +253,12 @@
   font-weight: 700;
 }
 
-/* Modal Butonları (YENİ: Aksiyon Butonları İçin Eklendi) */
 .modalFooter {
   padding: 1rem 1.5rem;
   background-color: #f8fafc;
   border-top: 1px solid #e2e8f0;
   display: flex;
-  justify-content: space-between; /* Kapat butonu sağda, aksiyonlar solda */
+  justify-content: space-between;
   align-items: center;
 }
 
@@ -271,9 +285,9 @@
 .actionBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btnSuccess { background-color: #10b981; }
 .btnSuccess:hover:not(:disabled) { background-color: #059669; }
-.btnWarning { background-color: #f59e0b; } /* Sarı/Turuncu */
+.btnWarning { background-color: #f59e0b; }
 .btnWarning:hover:not(:disabled) { background-color: #d97706; }
-.btnDanger { background-color: #ef4444; } /* Kırmızı */
+.btnDanger { background-color: #ef4444; }
 .btnDanger:hover:not(:disabled) { background-color: #dc2626; }
 
 .closeButton {

@@ -1,10 +1,10 @@
 // src/app/api/cron/reminders/route.ts
-import { createClient } from '@/server/db/supabase'; 
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { differenceInMinutes, parseISO } from 'date-fns';
 
 export async function GET(request: Request) {
   // 1. GÜVENLİK KONTROLÜ
-  // n8n'den gelen başlığı ve 'CRON_REMINDERS' şifresini kontrol et
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_REMINDERS; 
 
@@ -12,88 +12,107 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Yetkisiz erişim.' }, { status: 401 });
   }
 
-  const supabase = await createClient();
+  // DİKKAT: Cron arka planda çalıştığı için Service Role Key kullanılır (Bypass RLS)
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
 
   try {
-    const now = new Date().toISOString();
-
-    // 2. GÖNDERİLMESİ GEREKEN HATIRLATMALAR
-    const { data: dueReminders, error } = await supabase
-      .from('reminders')
-      .select(`
-        id, type, appointment_id, attempts,
-        appointments (
-          start_at, status,
-          services (name),
-          customers (full_name, email, phone)
-        )
-      `)
-      .lte('scheduled_for', now)
-      .is('sent_at', null)
-      .lt('attempts', 3)
-      .limit(10);
-
-    if (error) throw error;
-    
-    if (!dueReminders || dueReminders.length === 0) {
-      return NextResponse.json({ message: 'Gönderilecek hatırlatma yok.' });
-    }
-
-    // 3. n8n ENTEGRASYONU
-    const webhookUrl = process.env.N8N_WEBHOOK_URL;
+    const now = new Date();
+    const webhookUrl = process.env.N8N_REMINDER_WEBHOOK_URL;
     const results = [];
 
-    for (const reminder of dueReminders) {
-      const appt: any = reminder.appointments;
+    // Gelecek 25 saat ve geçmiş 2 saat içindeki randevuları tek seferde çekiyoruz.
+    // Aynı zamanda bu randevu için daha önce gönderilmiş hatırlatmaları da (reminders) çekiyoruz.
+    const minTime = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString();
+    const maxTime = new Date(now.getTime() + 25 * 60 * 60 * 1000).toISOString();
+
+    const { data: appointments, error } = await supabase
+      .from('appointments')
+      .select(`
+        id, start_at, end_at, status,
+        services (name),
+        customers (full_name, email, phone),
+        staff (name),
+        reminders (type)
+      `)
+      .in('status', ['confirmed', 'completed']) // Sadece onaylılar ve tamamlananlar
+      .gte('start_at', minTime)
+      .lte('start_at', maxTime);
+
+    if (error) throw error;
+
+    // Her bir randevuyu süzgeçten geçir
+    for (const appt of appointments || []) {
+      const startAt = parseISO(appt.start_at);
+      const endAt = parseISO(appt.end_at);
       
-      // İptal edilmiş/gelmemiş randevuları atla
-      if (appt.status === 'cancelled' || appt.status === 'no_show') {
-         await supabase.from('reminders').update({ 
-             sent_at: new Date().toISOString(), 
-             last_error: 'Randevu iptal olduğu için gönderilmedi.' 
-         }).eq('id', reminder.id);
-         continue;
+      // Bu randevu için daha önce gönderilmiş mesaj tiplerinin listesi
+      const sentTypes = appt.reminders?.map((r: any) => r.type) || [];
+      let typeToSend = null;
+
+      // ZAMAN HESAPLAMALARI (Farkları dakika cinsinden buluyoruz)
+      const minsToStart = differenceInMinutes(startAt, now);
+      const minsSinceEnd = differenceInMinutes(now, endAt);
+
+      // KURAL 1: 24 SAAT ÖNCESİ (23 - 24.5 saat arasıysa ve henüz gönderilmediyse)
+      if (minsToStart <= 24 * 60 + 30 && minsToStart >= 23 * 60 && !sentTypes.includes('24_HOURS_BEFORE') && appt.status === 'confirmed') {
+        typeToSend = '24_HOURS_BEFORE';
+      }
+      // KURAL 2: 2 SAAT ÖNCESİ (1 - 2.5 saat arasıysa ve henüz gönderilmediyse)
+      else if (minsToStart <= 2 * 60 + 30 && minsToStart >= 60 && !sentTypes.includes('2_HOURS_BEFORE') && appt.status === 'confirmed') {
+        typeToSend = '2_HOURS_BEFORE';
+      }
+      // KURAL 3: BİTİMDEN 30 DK SONRA (30 - 120 dakika arası geçtiyse ve gönderilmediyse)
+      else if (minsSinceEnd >= 30 && minsSinceEnd <= 120 && !sentTypes.includes('30_MINS_AFTER') && (appt.status === 'confirmed' || appt.status === 'completed')) {
+        typeToSend = '30_MINS_AFTER';
       }
 
-      // Veri yapısını düzelt (Array kontrolü)
-      const customer = Array.isArray(appt.customers) ? appt.customers[0] : appt.customers;
-      const service = Array.isArray(appt.services) ? appt.services[0] : appt.services;
+      // EĞER GÖNDERİLECEK BİR MESAJ TÜRÜ BULUNDUYSA -> n8n'e gönder
+      if (typeToSend && webhookUrl) {
+         // Supabase Array/Object karmaşasını düzelt
+         const customer = Array.isArray(appt.customers) ? appt.customers[0] : appt.customers;
+         const service = Array.isArray(appt.services) ? appt.services[0] : appt.services;
+         const staff = Array.isArray(appt.staff) ? appt.staff[0] : appt.staff;
 
-      if (webhookUrl) {
-        try {
-           await fetch(webhookUrl, {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({
-               type: 'REMINDER_EMAIL',
-               subType: reminder.type,
-               appointmentId: reminder.appointment_id,
-               customer: {
-                 name: customer?.full_name,
-                 email: customer?.email,
-                 phone: customer?.phone
-               },
-               service: service?.name,
-               date: appt.start_at
-             })
-           });
+         try {
+            await fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: 'REMINDER_WEBHOOK',
+                subType: typeToSend, // 24_HOURS_BEFORE, 2_HOURS_BEFORE veya 30_MINS_AFTER
+                appointmentId: appt.id,
+                customer: {
+                  name: customer?.full_name,
+                  email: customer?.email,
+                  phone: customer?.phone
+                },
+                service: service?.name,
+                staff: staff?.name,
+                date: appt.start_at
+              })
+            });
 
-           // Başarılı -> Güncelle
-           await supabase.from('reminders').update({ sent_at: new Date().toISOString() }).eq('id', reminder.id);
-           results.push({ id: reminder.id, status: 'sent' });
+            // Başarılı olursa 'reminders' tablosuna LOG olarak ekle ki bir daha gönderilmesin!
+            await supabase.from('reminders').insert({
+              appointment_id: appt.id,
+              type: typeToSend,
+              scheduled_for: now.toISOString(),
+              sent_at: now.toISOString(),
+              attempts: 1
+            });
 
-        } catch (webhookErr: any) {
-           // Hata -> Tekrar dene
-           await supabase.from('reminders').update({ 
-               attempts: (reminder as any).attempts + 1,
-               last_error: webhookErr.message
-           }).eq('id', reminder.id);
-           results.push({ id: reminder.id, status: 'failed' });
-        }
+            results.push({ appointment_id: appt.id, type: typeToSend, status: 'sent' });
+
+         } catch (webhookErr) {
+            console.error('n8n Webhook hatası:', webhookErr);
+         }
       }
     }
 
-    return NextResponse.json({ success: true, processed: results.length });
+    return NextResponse.json({ success: true, processed_count: results.length, details: results });
 
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

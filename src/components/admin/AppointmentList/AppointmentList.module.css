@@ -1,158 +1,225 @@
 /* src/components/admin/AppointmentList/AppointmentList.module.css */
 
-.container {
+.tableWrapper {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  border: 1px solid #e2e8f0;
+  overflow-x: auto; /* Mobilde veya dar ekranlarda yatay kaydırma sağlar */
+  margin-top: 1rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  white-space: nowrap; /* Sütunların daralmasını engeller */
+}
+
+/* Tablo Başlıkları (Header) */
+.table th {
+  background-color: #f8fafc;
+  padding: 16px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Tablo Hücreleri (Body) */
+.table td {
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+/* Satır Hover Efekti */
+.table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.table tbody tr:hover {
+  background-color: #f1f5f9;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* --- HÜCRE İÇERİK TASARIMLARI --- */
+
+/* Tarih ve Saat Sütunu */
+.dateTimeCell {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1.5rem;
-}
-
-.emptyState {
-  text-align: center;
-  padding: 3rem;
-  color: #9ca3af;
-  background: #f9fafb;
-  border-radius: 12px;
-  border: 2px dashed #e5e7eb;
-  margin: 1.5rem;
-}
-
-.card {
-  display: flex;
-  align-items: center;
-  background-color: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 1.25rem;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  transition: all 0.2s ease;
-}
-
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.05);
-  border-color: #d1d5db;
-}
-
-/* SOL: Zaman Kutusu */
-.timeBlock {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding-right: 1.5rem;
-  border-right: 1px solid #f3f4f6;
-  min-width: 90px;
+  gap: 4px;
 }
 
 .time {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #1f2937;
-  letter-spacing: -0.5px;
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 0.95rem;
 }
 
 .date {
-  font-size: 0.7rem;
-  color: #6b7280;
-  text-transform: uppercase;
-  font-weight: 600;
-  margin-top: 4px;
+  font-size: 0.8rem;
+  color: #64748b;
 }
 
-/* ORTA: Detaylar */
-.detailsBlock {
-  flex: 1;
-  padding-left: 1.5rem;
+/* Müşteri Sütunu */
+.customerCell {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-}
-
-.headerRow {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+  gap: 4px;
 }
 
 .customerName {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #111827;
-  text-decoration: none;
-}
-.customerName:hover { color: #7c3aed; }
-
-.statusBadge {
-  font-size: 0.65rem;
-  font-weight: 700;
-  padding: 4px 8px;
-  border-radius: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-/* Statü Renkleri (CSS Modülü içinde) */
-.confirmed { background: #e0f2fe; color: #0369a1; }
-.pending { background: #fef3c7; color: #b45309; }
-.completed { background: #dcfce7; color: #15803d; }
-.cancelled { background: #fee2e2; color: #b91c1c; }
-.no_show { background: #f3f4f6; color: #4b5563; }
-
-.subInfo {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-.staff {
-  background: #f5f3ff;
-  color: #7c3aed;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.75rem;
   font-weight: 600;
+  color: #2563eb; /* Link rengi */
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.2s;
 }
 
-/* SAĞ: Butonlar */
-.actionsBlock {
-  padding-left: 1rem;
+.customerName:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
 }
 
+.customerPhone {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Hizmet ve Personel Sütunu */
+.serviceCell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.serviceName {
+  font-weight: 600;
+  color: #334155;
+  font-size: 0.9rem;
+}
+
+.staffName {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* --- DURUM (STATUS) BADGE'LERİ --- */
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 9999px; /* Tam yuvarlak (Pill) görünüm */
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+}
+
+.confirmed {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.pending {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.completed {
+  background-color: #dcfce3;
+  color: #166534;
+}
+
+.no_show {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.cancelled {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+/* --- AKSİYON BUTONLARI --- */
 .buttonsWrapper {
   display: flex;
-  gap: 0.5rem;
+  gap: 8px;
+  align-items: center;
 }
 
-.circleBtn {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px; /* Tam yuvarlak yerine hafif köşeli */
-  border: 1px solid transparent;
+.actionBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: white;
+  font-weight: bold;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
-.btnSuccess { border-color: #86efac; color: #16a34a; }
-.btnSuccess:hover { background: #16a34a; color: white; }
+.actionBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
-.btnWarning { border-color: #fdba74; color: #ea580c; }
-.btnWarning:hover { background: #ea580c; color: white; }
+.btnSuccess {
+  background-color: #10b981;
+  color: white;
+}
+.btnSuccess:hover:not(:disabled) {
+  background-color: #059669;
+}
 
-.btnDanger { border-color: #fca5a5; color: #dc2626; }
-.btnDanger:hover { background: #dc2626; color: white; }
+.btnWarning {
+  background-color: #f59e0b;
+  color: white;
+}
+.btnWarning:hover:not(:disabled) {
+  background-color: #d97706;
+}
+
+.btnDanger {
+  background-color: #ef4444;
+  color: white;
+}
+.btnDanger:hover:not(:disabled) {
+  background-color: #dc2626;
+}
 
 .lockedState {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: #f1f5f9;
+  color: #64748b;
+  border-radius: 8px;
   font-size: 0.8rem;
-  color: #9ca3af;
-  background: #f9fafb;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: 1px solid #f3f4f6;
+  font-weight: 600;
+  user-select: none;
+}
+
+/* Veri Yoksa */
+.emptyState {
+  text-align: center;
+  padding: 48px;
+  color: #64748b;
+  background-color: #f8fafc;
+  border-radius: 12px;
+  border: 2px dashed #e2e8f0;
+  margin-top: 1rem;
+  font-weight: 500;
 }

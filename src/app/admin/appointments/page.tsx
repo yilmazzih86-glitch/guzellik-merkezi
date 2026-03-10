@@ -3,24 +3,33 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/server/db/supabaseClient';
+import { startOfDay, endOfDay } from 'date-fns';
 import CalendarTimeline from '@/components/admin/Calendar/CalendarTimeline';
+import CalendarMonthly from '@/components/admin/Calendar/CalendarMonthly';
 import AppointmentList from '@/components/admin/AppointmentList/AppointmentList';
+import CreateAppointmentModal from '@/components/admin/AppointmentModal/CreateAppointmentModal'; // YENİ EKLENDİ
 import styles from './Appointments.module.css';
 import { AppointmentWithDetails } from '@/types/custom';
 
 export default function AppointmentsPage() {
-  const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
+  const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([]);
   const [loading, setLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  // YENİ EKLENDİ: Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // KRİTİK DÜZELTME: useMemo kullanarak istemciyi sabitledik.
   const supabase = useMemo(() => createClient(), []);
 
-  // Liste verilerini çek
-  const fetchListAppointments = useCallback(async () => {
+  const fetchDailyAppointments = useCallback(async () => {
+    let isMounted = true;
     setLoading(true);
     
+    const todayStart = startOfDay(new Date()).toISOString();
+    const todayEnd = endOfDay(new Date()).toISOString();
+
     const { data, error } = await supabase
       .from('appointments')
       .select(`
@@ -29,35 +38,37 @@ export default function AppointmentsPage() {
         services (name, duration_min),
         staff (name)
       `)
-      .order('start_at', { ascending: false }) // En yeni en üstte
-      .limit(50); // Performans limiti
+      .gte('start_at', todayStart)
+      .lte('start_at', todayEnd)
+      .order('start_at', { ascending: true }); 
 
     if (error) {
-      console.error('Randevu listesi hatası:', error);
-    } else {
+      console.error('Günlük randevu hatası:', error);
+    } else if (isMounted) {
       setAppointments(data as any || []);
     }
     
-    setLoading(false);
-    setIsRefreshing(false);
-  }, [supabase]);
-
-  // Görünüm değiştiğinde veri çek
-  useEffect(() => {
-    if (viewMode === 'list') {
-      fetchListAppointments();
+    if (isMounted) {
+      setLoading(false);
+      setIsRefreshing(false);
     }
-  }, [viewMode, fetchListAppointments]);
+    
+    return () => { isMounted = false; };
+  }, [supabase, refreshTrigger]);
 
-  // Manuel Yenileme
+  useEffect(() => {
+    if (viewMode === 'daily') {
+      fetchDailyAppointments();
+    }
+  }, [viewMode, fetchDailyAppointments]);
+
   const handleRefresh = () => {
     setIsRefreshing(true);
-    if (viewMode === 'list') {
-      fetchListAppointments();
-    } else {
-      // Takvim bileşeni kendi içinde veri çektiği için sayfayı yeniliyoruz
-      window.location.reload();
-    }
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  const handleUpdate = () => {
+    setRefreshTrigger(prev => prev + 1);
   };
 
   return (
@@ -66,23 +77,31 @@ export default function AppointmentsPage() {
         <div className={styles.headerTitleGroup}>
           <h1 className={styles.pageTitle}>Randevu Yönetimi</h1>
           <p className={styles.pageSubtitle}>
-            {viewMode === 'calendar' ? 'Haftalık doluluk ve planlama' : 'Son randevular ve işlem durumu'}
+            {viewMode === 'daily' && 'Bugünün randevuları ve işlem durumu'}
+            {viewMode === 'weekly' && 'Haftalık doluluk ve planlama'}
+            {viewMode === 'monthly' && 'Aylık genel bakış ve doluluk'}
           </p>
         </div>
         
         <div className={styles.actionGroup}>
           <div className={styles.toggleGroup}>
             <button 
-              className={`${styles.toggleButton} ${viewMode === 'calendar' ? styles.active : ''}`}
-              onClick={() => setViewMode('calendar')}
+              className={`${styles.toggleButton} ${viewMode === 'daily' ? styles.active : ''}`}
+              onClick={() => setViewMode('daily')}
             >
-              📅 Takvim
+              📝 Günlük Liste
             </button>
             <button 
-              className={`${styles.toggleButton} ${viewMode === 'list' ? styles.active : ''}`}
-              onClick={() => setViewMode('list')}
+              className={`${styles.toggleButton} ${viewMode === 'weekly' ? styles.active : ''}`}
+              onClick={() => setViewMode('weekly')}
             >
-              📋 Liste
+              📅 Haftalık
+            </button>
+            <button 
+              className={`${styles.toggleButton} ${viewMode === 'monthly' ? styles.active : ''}`}
+              onClick={() => setViewMode('monthly')}
+            >
+              🗓️ Aylık
             </button>
           </div>
 
@@ -92,31 +111,49 @@ export default function AppointmentsPage() {
             title="Yenile"
             disabled={isRefreshing}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-              <path d="M21 12v9" />
-            </svg>
+            Yenile
           </button>
 
-          <button className={styles.createButton}>
+          {/* YENİ EKLENDİ: onClick ile Modal açılıyor */}
+          <button className={styles.createButton} onClick={() => setIsModalOpen(true)}>
             + Yeni Randevu
           </button>
         </div>
       </div>
 
       <div className={styles.contentWrapper}>
-        {viewMode === 'calendar' ? (
-          <CalendarTimeline />
-        ) : (
+        {viewMode === 'daily' && (
           <div className={styles.listContainer}>
             {loading ? (
                <div className={styles.loadingState}>Yükleniyor...</div>
             ) : (
-               <AppointmentList appointments={appointments} />
+               <AppointmentList 
+                 appointments={appointments} 
+                 onUpdate={handleUpdate} 
+               />
             )}
           </div>
         )}
+        
+        {viewMode === 'weekly' && (
+          <CalendarTimeline refreshTrigger={refreshTrigger} onUpdate={handleUpdate} />
+        )}
+
+        {viewMode === 'monthly' && (
+          <CalendarMonthly refreshTrigger={refreshTrigger} onUpdate={handleUpdate} />
+        )}
       </div>
+
+      {/* YENİ EKLENDİ: Yeni Randevu Modalı */}
+      <CreateAppointmentModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSuccess={() => {
+          setIsModalOpen(false); // Başarılı olunca popup'ı kapat
+          handleUpdate();        // Listeyi ve Takvimi yenile
+        }}
+      />
+
     </div>
   );
 }

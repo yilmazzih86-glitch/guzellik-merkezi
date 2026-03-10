@@ -1,13 +1,14 @@
 // src/server/db/supabaseClient.ts
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-// Mevcut kullanım bozulmasın diye (Singleton instance)
-export const supabaseClient = createSupabaseClient(supabaseUrl, supabaseAnonKey);
+// Mevcut kullanım bozulmasın diye (Geriye dönük uyumluluk için)
+export const supabaseClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
-// HATA ÇÖZÜMÜ: Bileşenlerin beklediği fonksiyonu export ediyoruz
+// HATA ÇÖZÜMÜ: İstemci bileşenlerinde (use client) çerezleri (cookie) 
+// okuyabilmesi ve oturum bilgilerini gönderebilmesi için createBrowserClient kullanıyoruz.
 export const createClient = () => {
-  return createSupabaseClient(supabaseUrl, supabaseAnonKey);
+  return createBrowserClient(supabaseUrl, supabaseAnonKey);
 };
